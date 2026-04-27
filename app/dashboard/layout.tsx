@@ -1,12 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { SubscriptionGate } from '@/components/layout/SubscriptionGate';
+import { DashboardNotifications } from '@/components/layout/DashboardNotifications';
 import { ClientProvider } from '@/components/providers/ClientProvider';
 import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
 import type { FeatureKey, SubscriptionStatus, UserRole } from '@/lib/types';
 
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  noStore();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -27,7 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: clientRecord } = clientId
     ? await supabase
       .from('clients')
-      .select('features, subscription_status, service_label, owner_name')
+      .select('features, subscription_status, service_label, owner_name, rejection_reason')
       .eq('id', clientId)
       .maybeSingle()
     : { data: null };
@@ -43,8 +49,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : ((clientRecord?.subscription_status as SubscriptionStatus) ?? 'pending_approval');
   const serviceLabel = (clientRecord as { service_label?: string | null } | null)?.service_label ?? null;
   const ownerName = (clientRecord as { owner_name?: string | null } | null)?.owner_name ?? profile?.full_name ?? null;
-
-  const showGate = !isAdmin && subscriptionStatus !== 'active';
 
   return (
     <ClientProvider
@@ -65,7 +69,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
         <main className="ml-16 min-h-screen">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
-            {showGate ? <SubscriptionGate status={subscriptionStatus} /> : children}
+            <DashboardNotifications userId={user.id} />
+            <SubscriptionGate rejectionReason={clientRecord?.rejection_reason ?? null}>
+              {children}
+            </SubscriptionGate>
           </div>
         </main>
         <WhatsAppButton />

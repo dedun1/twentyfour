@@ -1,11 +1,17 @@
 'use client';
 
-import { Clock, KeyRound, MessageCircle, PauseCircle, XCircle } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Clock, LogOut, MessageCircle, PauseCircle, XCircle } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { createClient } from '@/lib/supabase/client';
+import { useClient } from '@/components/providers/ClientProvider';
+import { Button } from '@/components/ui/button';
 import type { SubscriptionStatus } from '@/lib/types';
 
 interface Props {
-  status: SubscriptionStatus;
+  rejectionReason?: string | null;
+  children: React.ReactNode;
 }
 
 const configs = {
@@ -22,56 +28,106 @@ const configs = {
     },
     icon: Clock,
   },
-  trial: {
-    ar: {
-      title: 'الفترة التجريبية',
-      desc: 'أنت حالياً في الفترة التجريبية. تواصل معنا لتفعيل اشتراكك الكامل والوصول لجميع الميزات.',
-      action: 'تفعيل الاشتراك',
-    },
-    en: {
-      title: 'Trial Period',
-      desc: "You're currently in the trial period. Contact us to activate your full subscription and access all features.",
-      action: 'Activate Subscription',
-    },
-    icon: KeyRound,
-  },
   paused: {
     ar: {
-      title: 'الاشتراك متوقف',
-      desc: 'تم إيقاف اشتراكك مؤقتاً. تواصل معنا لإعادة تفعيل حسابك.',
-      action: 'إعادة التفعيل',
+      title: 'الحساب متوقف',
+      desc: 'تم إيقاف حسابك مؤقتاً. يرجى التواصل مع الدعم لإعادة التفعيل.',
+      action: 'تواصل عبر واتساب',
     },
     en: {
-      title: 'Subscription Paused',
-      desc: 'Your subscription has been temporarily paused. Contact us to reactivate your account.',
-      action: 'Reactivate',
+      title: 'Account Paused',
+      desc: 'Your account has been temporarily paused. Please contact support to reactivate.',
+      action: 'Contact Us on WhatsApp',
     },
     icon: PauseCircle,
   },
-  cancelled: {
+  rejected: {
     ar: {
-      title: 'تم إلغاء الاشتراك',
-      desc: 'اشتراكك غير نشط. تواصل معنا لإعادة التفعيل.',
-      action: 'تفعيل الاشتراك',
+      title: 'لم تتم الموافقة على الحساب',
+      desc: 'يرجى التواصل مع فريقنا لمعرفة سبب الرفض أو إعادة التقديم.',
+      action: 'تواصل عبر واتساب',
     },
     en: {
-      title: 'Subscription Cancelled',
-      desc: 'Your subscription is inactive. Contact us to reactivate.',
-      action: 'Reactivate',
+      title: 'Account Not Approved',
+      desc: 'Please contact our team for clarification or to reapply.',
+      action: 'Contact Us on WhatsApp',
+    },
+    icon: XCircle,
+  },
+  cancelled: {
+    ar: {
+      title: 'انتهى الاشتراك',
+      desc: 'انتهى اشتراكك. تواصل معنا إذا أردت إعادة التفعيل.',
+      action: 'تواصل عبر واتساب',
+    },
+    en: {
+      title: 'Subscription Ended',
+      desc: 'Your subscription has ended.',
+      action: 'Contact Us on WhatsApp',
     },
     icon: XCircle,
   },
 };
 
-export function SubscriptionGate({ status }: Props) {
+export function SubscriptionGate({ rejectionReason, children }: Props) {
   const { lang } = useLanguage();
+  const router = useRouter();
+  const { userRole = 'client', subscriptionStatus } = useClient();
+  const status = subscriptionStatus;
+
+  // Admin bypass must always be the first gate condition.
+  if (userRole === 'admin') return <>{children}</>;
+  if (status === 'active' || status === 'trial') return <>{children}</>;
+
   const config = configs[status as keyof typeof configs];
   if (!config) return null;
 
   const text = config[lang];
   const Icon = config.icon;
-  const whatsappNumber = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '201000000000';
+  const whatsappNumber = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '201115581594';
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, client_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.role === 'admin') {
+        router.push('/dashboard');
+        return;
+      }
+
+      const clientId = profile?.client_id;
+      if (!clientId) return;
+
+      const { data: client } = await supabase
+        .from('clients')
+        .select('subscription_status')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (client?.subscription_status === 'active') {
+        router.push('/dashboard');
+      }
+    };
+
+    checkStatus();
+    const intervalId = setInterval(checkStatus, 30000);
+    return () => clearInterval(intervalId);
+  }, [router, supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   return (
     <div
@@ -89,6 +145,11 @@ export function SubscriptionGate({ status }: Props) {
           <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
             {text.desc}
           </p>
+          {status === 'rejected' && rejectionReason ? (
+            <p className="mt-2 text-sm leading-relaxed text-destructive">
+              {rejectionReason}
+            </p>
+          ) : null}
         </div>
         <a
           href={whatsappUrl}
@@ -99,6 +160,17 @@ export function SubscriptionGate({ status }: Props) {
           <MessageCircle size={18} />
           {text.action}
         </a>
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut size={14} />
+            {lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+          </Button>
+        </div>
       </div>
     </div>
   );

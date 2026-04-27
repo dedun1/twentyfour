@@ -192,7 +192,7 @@ export default function ContactPage() {
               {/* Section 2: Your Business */}
               <Section title={tc.sectionBusiness}>
                 <Field label={tc.businessTypeLabel}>
-                  <Select value={form.business_type || undefined} onValueChange={(v) => set('business_type', v)}>
+                  <Select value={form.business_type || undefined} onValueChange={(v) => set('business_type', v ?? '')}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tc.businessTypePlaceholder} />
                     </SelectTrigger>
@@ -208,7 +208,7 @@ export default function ContactPage() {
                     <Input value={form.city} onChange={(e) => set('city', e.target.value)} placeholder={tc.cityPlaceholder} />
                   </Field>
                   <Field label={tc.teamSizeLabel}>
-                    <Select value={form.team_size || undefined} onValueChange={(v) => set('team_size', v)}>
+                    <Select value={form.team_size || undefined} onValueChange={(v) => set('team_size', v ?? '')}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder={tc.teamSizePlaceholder} />
                       </SelectTrigger>
@@ -221,7 +221,7 @@ export default function ContactPage() {
                   </Field>
                 </div>
                 <Field label={tc.yearsLabel}>
-                  <Select value={form.years_in_business || undefined} onValueChange={(v) => set('years_in_business', v)}>
+                  <Select value={form.years_in_business || undefined} onValueChange={(v) => set('years_in_business', v ?? '')}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tc.yearsPlaceholder} />
                     </SelectTrigger>
@@ -269,7 +269,7 @@ export default function ContactPage() {
                   <Textarea value={form.automation_goals} onChange={(e) => set('automation_goals', e.target.value)} rows={3} placeholder={tc.automationGoalsPlaceholder} />
                 </Field>
                 <Field label={tc.timelineLabel}>
-                  <Select value={form.timeline || undefined} onValueChange={(v) => set('timeline', v)}>
+                  <Select value={form.timeline || undefined} onValueChange={(v) => set('timeline', v ?? '')}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tc.timelinePlaceholder} />
                     </SelectTrigger>
@@ -281,7 +281,7 @@ export default function ContactPage() {
                   </Select>
                 </Field>
                 <Field label={tc.sourceLabel}>
-                  <Select value={form.source || undefined} onValueChange={(v) => set('source', v)}>
+                  <Select value={form.source || undefined} onValueChange={(v) => set('source', v ?? '')}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tc.sourcePlaceholder} />
                     </SelectTrigger>

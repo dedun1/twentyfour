@@ -332,6 +332,7 @@ const translations = {
         trial: 'تجريبي',
         pending_approval: 'في الانتظار',
         paused: 'متوقف',
+        rejected: 'مرفوض',
         cancelled: 'ملغي',
       },
       contactRequests: {
@@ -891,6 +892,7 @@ const translations = {
         trial: 'Trial',
         pending_approval: 'Pending Approval',
         paused: 'Paused',
+        rejected: 'Rejected',
         cancelled: 'Cancelled',
       },
       contactRequests: {

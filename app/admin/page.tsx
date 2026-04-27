@@ -1,692 +1,439 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Users, UserPlus, Search, X, Check, ChevronRight, ExternalLink, Inbox, Clock, DollarSign, BarChart3, Pause, Play, Trash2, MessageCircle, AlertCircle,
-} from 'lucide-react';
+import { Bell, Calendar, Check, Clock3, MoreHorizontal, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { useLanguage } from '@/components/providers/LanguageProvider';
-import { useT } from '@/lib/translations';
-import { AddClientModal } from '@/components/admin/AddClientModal';
-import { ClientsDataTable } from '@/components/admin/ClientsDataTable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import type { AdminClient, FeatureKey, SubscriptionStatus, ContactRequest, ContactRequestStatus } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { AdminClient, ContactRequest, FeatureKey, QAScript, ServiceType, SubscriptionStatus } from '@/lib/types';
 
-type Tab = 'pending' | 'clients' | 'contacts' | 'features' | 'stats';
+type TabKey = 'pending' | 'clients' | 'contacts' | 'appointments' | 'scripts' | 'stats';
+type PlanType = 'Starter' | 'Growth' | 'Scale' | 'Custom';
 
-const ALL_FEATURES: FeatureKey[] = ['appointments', 'whatsapp', 'scripts', 'reports', 'reminders'];
-const STATUS_LIST: SubscriptionStatus[] = ['active', 'trial', 'pending_approval', 'paused', 'rejected', 'cancelled'];
-
-const STATUS_COLORS: Record<string, string> = {
-  active: '#22c55e',
-  trial: '#3b82f6',
-  pending_approval: '#f59e0b',
-  paused: '#9ca3af',
-  cancelled: '#ef4444',
+type AppointmentAdmin = {
+  id: string;
+  user_id: string;
+  client_name: string;
+  client_phone?: string;
+  service: string;
+  date: string;
+  time: string;
+  status: string;
+  created_at: string;
 };
+type AdminClientRow = AdminClient & { client_id?: string | null; service_type?: ServiceType; service_label?: string | null; notes?: string | null };
 
-const CONTACT_STATUS_COLORS: Record<ContactRequestStatus, string> = {
-  new: '#3b82f6',
-  contacted: '#f59e0b',
-  converted: '#22c55e',
-  closed: '#9ca3af',
+const FEATURES: FeatureKey[] = ['appointments', 'whatsapp', 'scripts', 'reports', 'reminders'];
+const SERVICE_LABELS: Record<Exclude<ServiceType, null>, string> = {
+  ai_chatbot: 'AI Chatbot Service',
+  booking_system: 'Booking System',
+  crm_automation: 'CRM Automation',
+  custom_workflow: 'Custom Workflow',
+  full_suite: 'Full Suite',
+};
+const SERVICE_DEFAULTS: Record<Exclude<ServiceType, null>, FeatureKey[]> = {
+  ai_chatbot: ['whatsapp', 'scripts', 'reports'],
+  booking_system: ['appointments', 'reminders', 'reports'],
+  crm_automation: ['whatsapp', 'appointments', 'reminders', 'reports'],
+  custom_workflow: [],
+  full_suite: FEATURES,
 };
 
 export default function AdminPage() {
-  const { lang } = useLanguage();
-  const t = useT(lang);
-  const ta = t.admin;
-  const [tab, setTab] = useState<Tab>('pending');
-  const [clients, setClients] = useState<AdminClient[]>([]);
-  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+  const supabase = createClient();
+  const [tab, setTab] = useState<TabKey>('pending');
+  const [clients, setClients] = useState<AdminClientRow[]>([]);
+  const [contacts, setContacts] = useState<ContactRequest[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentAdmin[]>([]);
+  const [scripts, setScripts] = useState<(QAScript & { client_id: string })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [drawerClient, setDrawerClient] = useState<AdminClient | null>(null);
-  const [drawerForm, setDrawerForm] = useState<Partial<AdminClient>>({});
-  const [saving, setSaving] = useState(false);
-  const [expandedContact, setExpandedContact] = useState<string | null>(null);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectTarget, setRejectTarget] = useState<AdminClient | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<AdminClient | null>(null);
+  const [myProfileId, setMyProfileId] = useState<string | null>(null);
+  const [approveTarget, setApproveTarget] = useState<AdminClientRow | null>(null);
+  const [declineTarget, setDeclineTarget] = useState<AdminClientRow | null>(null);
+  const [editClient, setEditClient] = useState<AdminClientRow | null>(null);
+  const [featureTarget, setFeatureTarget] = useState<AdminClientRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminClientRow | null>(null);
+  const [deleteName, setDeleteName] = useState('');
+  const [scriptEdit, setScriptEdit] = useState<(QAScript & { client_id: string }) | null>(null);
+
+  const [clientSearch, setClientSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | SubscriptionStatus>('all');
+  const [serviceFilter, setServiceFilter] = useState<'all' | Exclude<ServiceType, null>>('all');
+  const [clientPageSize, setClientPageSize] = useState(10);
+  const [contactFilter, setContactFilter] = useState<'all' | 'new' | 'contacted' | 'converted' | 'closed'>('all');
+  const [contactSearch, setContactSearch] = useState('');
+  const [appointmentClientFilter, setAppointmentClientFilter] = useState('all');
+  const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('all');
+  const [appointmentFrom, setAppointmentFrom] = useState('');
+  const [appointmentTo, setAppointmentTo] = useState('');
+  const [scriptClientFilter, setScriptClientFilter] = useState('all');
+  const [scriptCategoryFilter, setScriptCategoryFilter] = useState('all');
+
+  const [approvalForm, setApprovalForm] = useState({
+    service_type: 'ai_chatbot' as Exclude<ServiceType, null>,
+    service_label: 'AI Chatbot Service',
+    features: SERVICE_DEFAULTS.ai_chatbot,
+    monthly_price: '',
+    plan: 'Starter' as PlanType,
+    notes: '',
+  });
+  const [declineReason, setDeclineReason] = useState('');
 
   const load = async () => {
     setLoading(true);
-    const supabase = createClient();
-
-    const [{ data: profiles }, { data: clientsData }, { data: contactsData }] = await Promise.all([
+    const [{ data: auth }, { data: profiles }, { data: clientRows }, { data: contactRows }, { data: appointmentRows }, { data: scriptRows }] = await Promise.all([
+      supabase.auth.getUser(),
       supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false }),
       supabase.from('clients').select('*'),
       supabase.from('contact_requests').select('*').order('created_at', { ascending: false }),
+      supabase.from('appointments').select('*').order('created_at', { ascending: false }),
+      supabase.from('qa_scripts').select('*').order('created_at', { ascending: false }),
     ]);
-
-    const merged: AdminClient[] = (profiles || []).map((p) => {
-      const cr = (clientsData || []).find((c) => c.profile_id === p.id);
+    setMyProfileId(auth.user?.id ?? null);
+    const merged = (profiles || []).map((p) => {
+      const c = (clientRows || []).find((x) => x.id === p.client_id || x.profile_id === p.id);
       return {
         ...p,
-        features: cr?.features || [],
-        subscription_status: cr?.subscription_status || 'pending_approval',
-        owner_whatsapp: cr?.owner_whatsapp || '',
-        setup_fee: cr?.setup_fee || 0,
-      };
+        subscription_status: c?.subscription_status ?? 'pending_approval',
+        features: c?.features ?? [],
+        monthly_price: c?.monthly_price ?? null,
+        plan: c?.plan ?? '',
+        service_type: c?.service_type ?? null,
+        service_label: c?.service_label ?? '',
+        notes: c?.notes ?? '',
+        rejection_reason: c?.rejection_reason ?? '',
+      } as AdminClientRow;
     });
-
     setClients(merged);
-    setContactRequests((contactsData as ContactRequest[]) || []);
+    setContacts((contactRows || []) as ContactRequest[]);
+    setAppointments((appointmentRows || []) as AppointmentAdmin[]);
+    setScripts((scriptRows || []) as (QAScript & { client_id: string })[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const pendingClients = useMemo(
-    () => clients.filter((c) => c.subscription_status === 'pending_approval' || c.subscription_status === 'trial'),
-    [clients]
-  );
+  const pending = useMemo(() => clients.filter((c) => c.subscription_status === 'pending_approval'), [clients]);
+  const unreadContacts = useMemo(() => contacts.filter((c) => !c.status || c.status === 'new').length, [contacts]);
+  const clientsById = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c])), [clients]);
 
-  const newContactsCount = useMemo(
-    () => contactRequests.filter((r) => !r.status || r.status === 'new').length,
-    [contactRequests]
-  );
-
-
-  const stats = {
-    total: clients.length,
-    active: clients.filter((c) => c.subscription_status === 'active').length,
-    trial: clients.filter((c) => c.subscription_status === 'trial').length,
-    pending: clients.filter((c) => c.subscription_status === 'pending_approval').length,
-    paused: clients.filter((c) => c.subscription_status === 'paused').length,
-    revenue: clients
-      .filter((c) => c.subscription_status === 'active')
-      .reduce((sum, c) => sum + (c.setup_fee || 0), 0),
-    newLeads: contactRequests.filter((r) => {
-      const d = new Date(r.created_at);
-      const now = new Date();
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length,
+  const approve = async () => {
+    if (!approveTarget) return;
+    const label = approvalForm.service_label.trim() || SERVICE_LABELS[approvalForm.service_type];
+    const { error } = await supabase.from('clients').upsert({
+      id: approveTarget.client_id,
+      profile_id: approveTarget.id,
+      subscription_status: 'active',
+      service_type: approvalForm.service_type,
+      service_label: label,
+      monthly_price: Number(approvalForm.monthly_price || 0),
+      plan: approvalForm.plan,
+      notes: approvalForm.notes || null,
+      features: approvalForm.features,
+      approved_at: new Date().toISOString(),
+      approved_by: myProfileId,
+    }, { onConflict: 'id' });
+    if (error) return toast.error(error.message);
+    await supabase.from('notifications').insert({
+      recipient_id: approveTarget.id,
+      type: 'account_approved',
+      title: 'Your account is approved!',
+      message: `You now have access to ${label}. Start exploring your dashboard.`,
+      is_read: false,
+    });
+    toast.success(`${approveTarget.business_name || approveTarget.full_name} approved`);
+    setApproveTarget(null);
+    await load();
   };
 
-  const handleSetStatus = async (id: string, status: SubscriptionStatus) => {
-    const supabase = createClient();
-    await supabase.from('clients').upsert({ profile_id: id, subscription_status: status }, { onConflict: 'profile_id' });
-    toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
-    load();
-  };
-
-  const handleReject = async () => {
-    if (!rejectTarget) return;
-    const supabase = createClient();
+  const decline = async () => {
+    if (!declineTarget || declineReason.trim().length < 10) return toast.error('Reason must be at least 10 characters');
     await supabase.from('clients').upsert({
-      profile_id: rejectTarget.id,
+      id: declineTarget.client_id,
+      profile_id: declineTarget.id,
       subscription_status: 'rejected',
-      rejection_reason: rejectReason.trim() || null,
-    }, { onConflict: 'profile_id' });
-    toast.success(lang === 'ar' ? 'تم الرفض' : 'Rejected');
-    setRejectOpen(false);
-    setRejectReason('');
-    setRejectTarget(null);
-    load();
+      rejection_reason: declineReason.trim(),
+    }, { onConflict: 'id' });
+    toast.success(`${declineTarget.business_name || declineTarget.full_name} declined`);
+    setDeclineTarget(null);
+    setDeclineReason('');
+    await load();
   };
 
-  const handleDelete = async (id: string) => {
-    const supabase = createClient();
-    await supabase.from('profiles').delete().eq('id', id);
-    toast.success(lang === 'ar' ? 'تم الحذف' : 'Deleted');
-    load();
-  };
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      const q = clientSearch.toLowerCase();
+      const matchesQuery = !q || c.business_name?.toLowerCase().includes(q) || c.full_name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === 'all' || c.subscription_status === statusFilter;
+      const matchesService = serviceFilter === 'all' || c.service_type === serviceFilter;
+      return Boolean(matchesQuery && matchesStatus && matchesService);
+    }).slice(0, clientPageSize);
+  }, [clients, clientSearch, statusFilter, serviceFilter, clientPageSize]);
 
-  const openDrawer = (client: AdminClient) => {
-    setDrawerClient(client);
-    setDrawerForm({
-      full_name: client.full_name,
-      phone: client.phone,
-      business_name: client.business_name,
-      owner_whatsapp: client.owner_whatsapp,
-      setup_fee: client.setup_fee,
-      subscription_status: client.subscription_status || 'pending_approval',
-      features: client.features || [],
-    });
-  };
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const activeClients = clients.filter((c) => c.subscription_status === 'active');
+  const monthlyRevenue = activeClients.reduce((sum, c) => sum + Number(c.monthly_price || 0), 0);
+  const conversionRate = contacts.length ? (contacts.filter((c) => c.status === 'converted').length / contacts.length) * 100 : 0;
+  const appointmentsToday = appointments.filter((a) => a.date === new Date().toISOString().slice(0, 10)).length;
 
-  const toggleFeature = (feature: FeatureKey) => {
-    setDrawerForm((prev) => {
-      const current = prev.features || [];
-      return {
-        ...prev,
-        features: current.includes(feature) ? current.filter((f) => f !== feature) : [...current, feature],
-      };
-    });
-  };
-
-  const handleSaveDrawer = async () => {
-    if (!drawerClient) return;
-    setSaving(true);
-    const supabase = createClient();
-
-    await supabase.from('profiles').update({
-      full_name: drawerForm.full_name,
-      phone: drawerForm.phone,
-      business_name: drawerForm.business_name,
-    }).eq('id', drawerClient.id);
-
-    await supabase.from('clients').upsert({
-      profile_id: drawerClient.id,
-      features: drawerForm.features,
-      subscription_status: drawerForm.subscription_status,
-      owner_whatsapp: drawerForm.owner_whatsapp,
-      setup_fee: drawerForm.setup_fee,
-    }, { onConflict: 'profile_id' });
-
-    toast.success(lang === 'ar' ? 'تم الحفظ' : 'Saved');
-    setSaving(false);
-    setDrawerClient(null);
-    load();
-  };
-
-  const handleAddClient = async (data: { full_name: string; email: string; phone?: string; business_name?: string; password: string }) => {
-    const res = await fetch('/api/admin/create-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await res.json();
-    if (!res.ok) { toast.error(result.error); return; }
-    toast.success(lang === 'ar' ? 'تم إضافة العميل' : 'Client added');
-    setShowModal(false);
-    load();
-  };
-
-  const updateContactStatus = async (id: string, status: ContactRequestStatus) => {
-    const supabase = createClient();
-    await supabase.from('contact_requests').update({ status }).eq('id', id);
-    toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
-    load();
-  };
-
-  const deleteContact = async (id: string) => {
-    if (!confirm(lang === 'ar' ? 'تأكيد الحذف؟' : 'Confirm delete?')) return;
-    const supabase = createClient();
-    await supabase.from('contact_requests').delete().eq('id', id);
-    toast.success(lang === 'ar' ? 'تم الحذف' : 'Deleted');
-    load();
-  };
-
-  const tabs: { id: Tab; label: string; icon: typeof Users; badge?: number }[] = [
-    {
-      id: 'pending',
-      label: lang === 'ar' ? 'الموافقات' : 'Pending',
-      icon: AlertCircle,
-      badge: pendingClients.length || undefined,
-    },
-    { id: 'clients', label: lang === 'ar' ? 'كل العملاء' : 'All Clients', icon: Users },
-    {
-      id: 'contacts',
-      label: lang === 'ar' ? 'طلبات التواصل' : 'Contact Requests',
-      icon: Inbox,
-      badge: newContactsCount || undefined,
-    },
-    { id: 'features', label: lang === 'ar' ? 'الميزات' : 'Manage Features', icon: ChevronRight },
-    { id: 'stats', label: lang === 'ar' ? 'الإحصائيات' : 'Stats', icon: BarChart3 },
-  ];
+  const activity = useMemo(() => {
+    const fromApprovals = clients.filter((c) => c.subscription_status === 'active').map((c) => ({ id: `ap-${c.id}`, date: c.created_at, text: `Approved ${c.business_name || c.full_name}` }));
+    const fromAppointments = appointments.map((a) => ({ id: `at-${a.id}`, date: a.created_at, text: `Appointment: ${a.client_name} - ${a.service}` }));
+    const fromContacts = contacts.map((c) => ({ id: `ct-${c.id}`, date: c.created_at, text: `Lead: ${c.full_name}` }));
+    return [...fromApprovals, ...fromAppointments, ...fromContacts].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 10);
+  }, [clients, appointments, contacts]);
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{ta.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {lang === 'ar' ? 'إدارة العملاء والطلبات' : 'Manage clients and requests'}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Admin Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Control clients, leads, appointments, scripts, and platform operations.</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <UserPlus />
-          {ta.addClient}
-        </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList className="flex flex-wrap">
-          {tabs.map(({ id, label, badge }) => (
-            <TabsTrigger key={id} value={id} className="gap-2">
-              {label}
-              {badge !== undefined && (
-                <Badge className="ms-1 bg-red-500/15 text-red-500">
-                  {badge}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+        <TabsList className="flex w-full flex-wrap justify-start gap-2">
+          <TabsTrigger value="pending">Pending Approvals {pending.length > 0 && <Badge className="ms-2 bg-red-500/15 text-red-500">{pending.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="clients">All Clients</TabsTrigger>
+          <TabsTrigger value="contacts">Contact Requests {unreadContacts > 0 && <Badge className="ms-2 bg-red-500/15 text-red-500">{unreadContacts}</Badge>}</TabsTrigger>
+          <TabsTrigger value="appointments">All Appointments</TabsTrigger>
+          <TabsTrigger value="scripts">Scripts Library</TabsTrigger>
+          <TabsTrigger value="stats">System Stats</TabsTrigger>
         </TabsList>
-      </Tabs>
 
-      {/* TAB 1: Pending Approvals */}
-      {tab === 'pending' && (
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex justify-center py-16"><span className="spinner" style={{ width: 32, height: 32 }} /></div>
-          ) : pendingClients.length === 0 ? (
-            <div className="glass-card p-12 text-center">
-              <Check size={40} className="mx-auto mb-3" style={{ color: '#22c55e', opacity: 0.7 }} />
-              <p style={{ color: 'var(--muted-fg)' }}>
-                {lang === 'ar' ? 'لا توجد موافقات معلقة' : 'No pending approvals'}
-              </p>
-            </div>
-          ) : (
-            pendingClients.map((c) => (
-              <div key={c.id} className="glass-card p-5">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
-                    <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-                      {c.business_name || c.full_name}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{c.email}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }} dir="ltr">{c.phone || '-'}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>
-                      {new Date(c.created_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
-                    </p>
+        <TabsContent value="pending" className="space-y-4">
+          {loading ? <Card><CardContent className="py-12 text-center">Loading...</CardContent></Card> : pending.map((c) => (
+            <Card key={c.id}>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="font-semibold">{c.business_name || c.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{c.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{c.email}</p>
+                    <p className="text-sm text-muted-foreground">{c.phone || '-'}</p>
+                    <p className="text-xs text-muted-foreground">Signed up {new Date(c.created_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => handleSetStatus(c.id, 'active')}>
-                      {lang === 'ar' ? 'موافقة' : 'Approve'}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setRejectTarget(c); setRejectOpen(true); }}>
-                      {lang === 'ar' ? 'رفض' : 'Decline'}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => openDrawer(c)}>
-                      {lang === 'ar' ? 'التفاصيل' : 'View Details'}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setDeleteTarget(c); setDeleteOpen(true); }}>
-                      <Trash2 />
-                    </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => { setApproveTarget(c); setApprovalForm((prev) => ({ ...prev, service_label: 'AI Chatbot Service', service_type: 'ai_chatbot', features: SERVICE_DEFAULTS.ai_chatbot })); }}>Approve</Button>
+                    <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => setDeclineTarget(c)}>Decline</Button>
+                    <Button variant="outline" onClick={() => setEditClient(c)}>View Details</Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 2: All Clients */}
-      {tab === 'clients' && (
-        <ClientsDataTable
-          data={clients}
-          loading={loading}
-          onEdit={openDrawer}
-          onDelete={(id) => {
-            const target = clients.find((c) => c.id === id) ?? null;
-            setDeleteTarget(target);
-            setDeleteOpen(true);
-          }}
-          onSetStatus={handleSetStatus}
-        />
-      )}
-
-      {/* TAB 3: Contact Requests */}
-      {tab === 'contacts' && (
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex justify-center py-16"><span className="spinner" style={{ width: 32, height: 32 }} /></div>
-          ) : contactRequests.length === 0 ? (
-            <div className="glass-card p-12 text-center">
-              <Inbox size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-fg)', opacity: 0.4 }} />
-              <p style={{ color: 'var(--muted-fg)' }}>
-                {lang === 'ar' ? 'لا توجد طلبات' : 'No contact requests'}
-              </p>
-            </div>
-          ) : (
-            contactRequests.map((req) => {
-              const isExpanded = expandedContact === req.id;
-              const status = req.status || 'new';
-              const waLink = req.whatsapp ? `https://wa.me/${req.whatsapp.replace(/\D/g, '').replace(/^0/, '20')}` : null;
-              return (
-                <div key={req.id} className="glass-card p-4">
-                  <div
-                    className="flex items-start justify-between gap-4 cursor-pointer"
-                    onClick={() => setExpandedContact(isExpanded ? null : req.id)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap mb-1">
-                        <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{req.full_name}</p>
-                        <span
-                          className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                          style={{ background: `${CONTACT_STATUS_COLORS[status]}18`, color: CONTACT_STATUS_COLORS[status] }}
-                        >
-                          {status}
-                        </span>
-                        {req.business_name && (
-                          <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{req.business_name}</span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-3 text-xs" style={{ color: 'var(--muted-fg)' }}>
-                        {req.business_type && <span>{req.business_type}</span>}
-                        {req.city && <span>{req.city}</span>}
-                        {req.team_size && <span>{req.team_size}</span>}
-                      </div>
-                    </div>
-                    <p className="text-xs shrink-0" style={{ color: 'var(--muted-fg)' }}>
-                      {new Date(req.created_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
-                    </p>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="mt-4 pt-4 space-y-3 text-xs" style={{ borderTop: '1px solid rgba(31,41,55,0.5)' }}>
-                      {req.email && <p><span style={{ color: 'var(--muted-fg)' }}>Email:</span> {req.email}</p>}
-                      {req.whatsapp && <p><span style={{ color: 'var(--muted-fg)' }}>WhatsApp:</span> <span dir="ltr">{req.whatsapp}</span></p>}
-                      {req.years_in_business && <p><span style={{ color: 'var(--muted-fg)' }}>Years:</span> {req.years_in_business}</p>}
-                      {req.daily_volume && <p><span style={{ color: 'var(--muted-fg)' }}>Daily volume:</span> {req.daily_volume}</p>}
-                      {req.daily_operations && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Daily ops:</span> {req.daily_operations}</p>}
-                      {req.client_acquisition && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Acquisition:</span> {req.client_acquisition}</p>}
-                      {req.current_tools && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Tools:</span> {req.current_tools}</p>}
-                      {req.time_wasters && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Time wasters:</span> {req.time_wasters}</p>}
-                      {req.recurring_problems && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Problems:</span> {req.recurring_problems}</p>}
-                      {req.one_thing_to_fix && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>One fix:</span> {req.one_thing_to_fix}</p>}
-                      {req.automation_goals && <p className="leading-relaxed"><span style={{ color: 'var(--muted-fg)' }}>Goals:</span> {req.automation_goals}</p>}
-                      {req.timeline && <p><span style={{ color: 'var(--muted-fg)' }}>Timeline:</span> {req.timeline}</p>}
-
-                      <div className="flex flex-wrap gap-2 pt-3">
-                        {waLink && (
-                          <a
-                            href={waLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5"
-                            style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
-                          >
-                            <MessageCircle size={12} />
-                            WhatsApp
-                          </a>
-                        )}
-                        <button
-                          onClick={() => updateContactStatus(req.id, 'contacted')}
-                          className="px-3 py-1.5 rounded-lg text-xs"
-                          style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}
-                        >
-                          {lang === 'ar' ? 'تم التواصل' : 'Mark Contacted'}
-                        </button>
-                        <button
-                          onClick={() => updateContactStatus(req.id, 'converted')}
-                          className="px-3 py-1.5 rounded-lg text-xs"
-                          style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
-                        >
-                          {lang === 'ar' ? 'حوّل لعميل' : 'Convert'}
-                        </button>
-                        <button
-                          onClick={() => updateContactStatus(req.id, 'closed')}
-                          className="px-3 py-1.5 rounded-lg text-xs"
-                          style={{ background: 'rgba(31,41,55,0.5)', color: 'var(--muted-fg)' }}
-                        >
-                          {lang === 'ar' ? 'إغلاق' : 'Close'}
-                        </button>
-                        <button
-                          onClick={() => deleteContact(req.id)}
-                          className="px-3 py-1.5 rounded-lg text-xs"
-                          style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* TAB 4: Manage Client Features */}
-      {tab === 'features' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {lang === 'ar' ? 'إدارة ميزات العملاء' : 'Manage client features'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="flex justify-center py-10"><span className="spinner size-8" /></div>
-            ) : clients.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{ta.noClients}</p>
-            ) : (
-              <div className="space-y-3">
-                {clients.map((c) => (
-                  <div key={c.id} className="rounded-lg border border-border p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{c.business_name || c.full_name}</p>
-                        <p className="text-xs text-muted-foreground">{c.email}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => openDrawer(c)}>
-                        {lang === 'ar' ? 'عرض' : 'View Details'}
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {ALL_FEATURES.map((feature) => {
-                        const enabled = (c.features || []).includes(feature);
-                        return (
-                          <div key={feature} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                            <span className="text-sm font-medium">{ta.features[feature]}</span>
-                            <Switch
-                              checked={enabled}
-                              onCheckedChange={async (val) => {
-                                const supabase = createClient();
-                                const next = val
-                                  ? Array.from(new Set([...(c.features || []), feature]))
-                                  : (c.features || []).filter((f) => f !== feature);
-                                setClients((prev) => prev.map((x) => x.id === c.id ? { ...x, features: next } : x));
-                                await supabase.from('clients').upsert({ profile_id: c.id, features: next }, { onConflict: 'profile_id' });
-                                toast.success(lang === 'ar' ? 'تم الحفظ' : 'Saved');
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* TAB 5: System Stats */}
-      {tab === 'stats' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: lang === 'ar' ? 'إجمالي العملاء' : 'Total Clients', value: stats.total, icon: Users },
-            { label: lang === 'ar' ? 'العملاء النشطين' : 'Active Clients', value: stats.active, icon: Check },
-            { label: lang === 'ar' ? 'موافقات معلقة' : 'Pending Approvals', value: stats.pending, icon: Clock },
-            { label: lang === 'ar' ? 'موقفين' : 'Paused', value: stats.paused, icon: Pause },
-            { label: lang === 'ar' ? 'إيراد الشهر' : 'Revenue this month', value: `${stats.revenue} EGP`, icon: DollarSign },
-            { label: lang === 'ar' ? 'طلبات جديدة' : 'New Leads (month)', value: stats.newLeads, icon: Inbox },
-          ].map(({ label, value, icon: Icon }) => (
-            <Card key={label}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {label}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  +0% from yesterday
-                </p>
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Add Client Modal */}
-      {showModal && (
-        <AddClientModal onClose={() => setShowModal(false)} onSave={handleAddClient} />
-      )}
-
-      {/* Client Detail Drawer */}
-      {drawerClient && (
-        <>
-          <div className="drawer-overlay" onClick={() => setDrawerClient(null)} />
-          <div className="drawer">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>{ta.clientDetails}</h2>
-              <button onClick={() => setDrawerClient(null)} style={{ color: 'var(--muted-fg)' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-fg)' }}>{ta.clientName}</label>
-                <input
-                  value={drawerForm.full_name || ''}
-                  onChange={(e) => setDrawerForm((p) => ({ ...p, full_name: e.target.value }))}
-                  className="input-base"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-fg)' }}>{ta.businessName}</label>
-                <input
-                  value={drawerForm.business_name || ''}
-                  onChange={(e) => setDrawerForm((p) => ({ ...p, business_name: e.target.value }))}
-                  className="input-base"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-fg)' }}>{ta.ownerWhatsapp}</label>
-                <input
-                  value={drawerForm.owner_whatsapp || ''}
-                  onChange={(e) => setDrawerForm((p) => ({ ...p, owner_whatsapp: e.target.value }))}
-                  className="input-base"
-                  placeholder="201xxxxxxxxx"
-                  dir="ltr"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-fg)' }}>{ta.subscriptionStatusLabel}</label>
-                <select
-                  value={drawerForm.subscription_status || 'pending_approval'}
-                  onChange={(e) => setDrawerForm((p) => ({ ...p, subscription_status: e.target.value as SubscriptionStatus }))}
-                  className="input-base"
-                  style={{ background: '#1f2937' }}
-                >
-                  {STATUS_LIST.map((s) => (
-                    <option key={s} value={s}>{ta.subscriptionStatus[s]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-fg)' }}>{ta.setupFee}</label>
-                <input
-                  type="number"
-                  value={drawerForm.setup_fee || ''}
-                  onChange={(e) => setDrawerForm((p) => ({ ...p, setup_fee: Number(e.target.value) }))}
-                  className="input-base"
-                  dir="ltr"
-                />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold mb-3" style={{ color: 'var(--muted-fg)' }}>{ta.features.title}</p>
-                <div className="space-y-2">
-                  {ALL_FEATURES.map((feature) => {
-                    const active = (drawerForm.features || []).includes(feature);
-                    return (
-                      <button
-                        key={feature}
-                        onClick={() => toggleFeature(feature)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all"
-                        style={{
-                          background: active ? 'rgba(240,165,0,0.1)' : 'rgba(31,41,55,0.5)',
-                          border: `1px solid ${active ? 'rgba(240,165,0,0.3)' : 'transparent'}`,
-                        }}
-                      >
-                        <span className="text-sm" style={{ color: active ? 'var(--primary)' : 'var(--muted-fg)' }}>
-                          {ta.features[feature]}
-                        </span>
-                        <div
-                          className="w-5 h-5 rounded-full flex items-center justify-center"
-                          style={{ background: active ? 'var(--primary)' : 'rgba(31,41,55,0.8)' }}
-                        >
-                          {active && <Check size={12} className="text-[#0a0f1e]" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <button onClick={handleSaveDrawer} disabled={saving} className="btn-gold w-full justify-center">
-                {saving ? <span className="spinner" style={{ width: 16, height: 16 }} /> : <Check size={16} />}
-                {ta.saveChanges}
-              </button>
-            </div>
+        <TabsContent value="clients" className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <Input className="md:col-span-2" placeholder="Search business, owner, email" value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter((v ?? 'all') as typeof statusFilter)}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="trial">Trial</SelectItem><SelectItem value="pending_approval">Pending Approval</SelectItem><SelectItem value="paused">Paused</SelectItem><SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={serviceFilter} onValueChange={(v) => setServiceFilter((v ?? 'all') as typeof serviceFilter)}>
+              <SelectTrigger><SelectValue placeholder="Service" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem><SelectItem value="ai_chatbot">AI Chatbot</SelectItem><SelectItem value="booking_system">Booking</SelectItem><SelectItem value="crm_automation">CRM</SelectItem><SelectItem value="custom_workflow">Custom</SelectItem><SelectItem value="full_suite">Full Suite</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={String(clientPageSize)} onValueChange={(v) => setClientPageSize(Number(v ?? '10'))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="10">10</SelectItem><SelectItem value="25">25</SelectItem><SelectItem value="50">50</SelectItem></SelectContent>
+            </Select>
           </div>
-        </>
-      )}
+          <Card>
+            <Table>
+              <TableHeader><TableRow><TableHead>Business</TableHead><TableHead>Owner</TableHead><TableHead>Service</TableHead><TableHead>Status</TableHead><TableHead>Plan</TableHead><TableHead>Monthly Price</TableHead><TableHead>Created</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {filteredClients.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.business_name || '-'}</TableCell><TableCell>{c.full_name}</TableCell>
+                    <TableCell><Badge variant="secondary">{(c.service_type && SERVICE_LABELS[c.service_type]) || '-'}</Badge></TableCell>
+                    <TableCell><Badge>{c.subscription_status}</Badge></TableCell>
+                    <TableCell>{c.plan || '-'}</TableCell><TableCell>{Number(c.monthly_price || 0).toLocaleString()} EGP</TableCell><TableCell>{new Date(c.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button>} />
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditClient(c)}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setFeatureTarget(c)}>Manage Features</DropdownMenuItem>
+                          <DropdownMenuItem onClick={async () => { await supabase.from('clients').upsert({ id: c.client_id, profile_id: c.id, subscription_status: c.subscription_status === 'paused' ? 'active' : 'paused' }, { onConflict: 'id' }); await load(); }}>{c.subscription_status === 'paused' ? 'Activate' : 'Pause'}</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onClick={() => { setDeleteTarget(c); setDeleteName(''); }}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
 
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{lang === 'ar' ? 'سبب الرفض' : 'Rejection reason'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="reject_reason">{lang === 'ar' ? 'السبب (اختياري)' : 'Reason (optional)'}</Label>
-            <Input id="reject_reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+        <TabsContent value="contacts" className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input placeholder="Search contact requests" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+            <Select value={contactFilter} onValueChange={(v) => setContactFilter((v ?? 'all') as typeof contactFilter)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="new">New</SelectItem><SelectItem value="contacted">Contacted</SelectItem><SelectItem value="converted">Converted</SelectItem><SelectItem value="closed">Closed</SelectItem></SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectOpen(false); setRejectReason(''); setRejectTarget(null); }}>
-              {t.common.cancel}
-            </Button>
-            <Button variant="destructive" onClick={handleReject}>
-              {lang === 'ar' ? 'رفض' : 'Reject'}
-            </Button>
-          </DialogFooter>
+          {contacts
+            .filter((c) => (contactFilter === 'all' || (c.status || 'new') === contactFilter) && (!contactSearch || `${c.full_name} ${c.business_name || ''}`.toLowerCase().includes(contactSearch.toLowerCase())))
+            .map((c) => (
+              <Card key={c.id}>
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2"><Badge>{c.status || 'new'}</Badge><p className="font-medium">{c.full_name}</p><p className="text-muted-foreground">{c.business_name || '-'}</p></div>
+                    <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{c.business_type || '-'} | {c.city || '-'} | {c.team_size || '-'}</p>
+                  <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                    <p>{c.daily_operations || '-'}</p><p>{c.client_acquisition || '-'}</p><p>{c.current_tools || '-'}</p><p>{c.daily_volume || '-'}</p><p>{c.time_wasters || '-'}</p><p>{c.recurring_problems || '-'}</p><p>{c.one_thing_to_fix || '-'}</p><p>{c.automation_goals || '-'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <a className="inline-flex" target="_blank" rel="noreferrer" href={`https://wa.me/${(c.whatsapp || '').replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(c.full_name)}%2C%20thanks%20for%20reaching%20out%20to%20TwentyFour`}><Button variant="outline">Reply on WhatsApp</Button></a>
+                    <Button variant="outline" onClick={async () => { const { data: newProfile } = await supabase.from('profiles').insert({ full_name: c.full_name, email: c.email, phone: c.phone, business_name: c.business_name, role: 'client' }).select('*').single(); if (newProfile) { const { data: newClient } = await supabase.from('clients').insert({ profile_id: newProfile.id, subscription_status: 'pending_approval' }).select('*').single(); await supabase.from('profiles').update({ client_id: newClient?.id }).eq('id', newProfile.id); setApproveTarget({ ...newProfile, client_id: newClient?.id, subscription_status: 'pending_approval', role: 'client' } as AdminClient); await supabase.from('contact_requests').update({ status: 'converted' }).eq('id', c.id); await load(); } }}>Convert to Client</Button>
+                    <Button variant="outline" onClick={async () => { await supabase.from('contact_requests').update({ status: 'contacted' }).eq('id', c.id); await load(); }}>Mark Contacted</Button>
+                    <Button variant="outline" onClick={async () => { await supabase.from('contact_requests').update({ status: 'closed' }).eq('id', c.id); await load(); }}>Mark Closed</Button>
+                    <Button variant="destructive" onClick={async () => { await supabase.from('contact_requests').delete().eq('id', c.id); await load(); }}>Delete</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </TabsContent>
+
+        <TabsContent value="appointments" className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <Select value={appointmentClientFilter} onValueChange={(v) => setAppointmentClientFilter(v ?? 'all')}><SelectTrigger><SelectValue placeholder="Client" /></SelectTrigger><SelectContent><SelectItem value="all">All clients</SelectItem>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.business_name || c.full_name}</SelectItem>)}</SelectContent></Select>
+            <Select value={appointmentStatusFilter} onValueChange={(v) => setAppointmentStatusFilter(v ?? 'all')}><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="confirmed">Confirmed</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select>
+            <Input type="date" value={appointmentFrom} onChange={(e) => setAppointmentFrom(e.target.value)} />
+            <Input type="date" value={appointmentTo} onChange={(e) => setAppointmentTo(e.target.value)} />
+          </div>
+          <Card>
+            <Table>
+              <TableHeader><TableRow><TableHead>Client</TableHead><TableHead>Customer Name</TableHead><TableHead>Phone</TableHead><TableHead>Service</TableHead><TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {appointments.filter((a) => {
+                  const owner = clientsById[a.user_id];
+                  const okClient = appointmentClientFilter === 'all' || owner?.id === appointmentClientFilter;
+                  const okStatus = appointmentStatusFilter === 'all' || a.status === appointmentStatusFilter;
+                  const okFrom = !appointmentFrom || a.date >= appointmentFrom;
+                  const okTo = !appointmentTo || a.date <= appointmentTo;
+                  return okClient && okStatus && okFrom && okTo;
+                }).map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell>{clientsById[a.user_id]?.business_name || '-'}</TableCell><TableCell>{a.client_name}</TableCell><TableCell>{a.client_phone || '-'}</TableCell><TableCell>{a.service}</TableCell><TableCell>{a.date}</TableCell><TableCell>{a.time}</TableCell><TableCell><Badge>{a.status}</Badge></TableCell>
+                    <TableCell><div className="flex gap-2"><Button variant="outline" size="sm" onClick={async () => { await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', a.id); await load(); }}>Cancel</Button><Button variant="destructive" size="sm" onClick={async () => { await supabase.from('appointments').delete().eq('id', a.id); await load(); }}>Delete</Button></div></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="scripts" className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Select value={scriptClientFilter} onValueChange={(v) => setScriptClientFilter(v ?? 'all')}><SelectTrigger><SelectValue placeholder="Client" /></SelectTrigger><SelectContent><SelectItem value="all">All clients</SelectItem>{clients.map((c) => <SelectItem key={c.id} value={c.client_id || c.id}>{c.business_name || c.full_name}</SelectItem>)}</SelectContent></Select>
+            <Input placeholder="Filter by category" value={scriptCategoryFilter === 'all' ? '' : scriptCategoryFilter} onChange={(e) => setScriptCategoryFilter(e.target.value || 'all')} />
+          </div>
+          <Card>
+            <Table>
+              <TableHeader><TableRow><TableHead>Client</TableHead><TableHead>Category</TableHead><TableHead>Question</TableHead><TableHead>Answer</TableHead><TableHead>Active</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {scripts.filter((s) => (scriptClientFilter === 'all' || s.client_id === scriptClientFilter) && (scriptCategoryFilter === 'all' || s.category.toLowerCase().includes(scriptCategoryFilter.toLowerCase()))).map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>{clients.find((c) => c.client_id === s.client_id)?.business_name || '-'}</TableCell>
+                    <TableCell>{s.category}</TableCell>
+                    <TableCell>{s.question.length > 60 ? `${s.question.slice(0, 60)}...` : s.question}</TableCell>
+                    <TableCell>{s.answer.length > 80 ? `${s.answer.slice(0, 80)}...` : s.answer}</TableCell>
+                    <TableCell><Badge variant={s.is_active ? 'default' : 'secondary'}>{s.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+                    <TableCell><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setScriptEdit(s)}>Edit</Button><Switch checked={s.is_active} onCheckedChange={async (v) => { await supabase.from('qa_scripts').update({ is_active: v }).eq('id', s.id); await load(); }} /><Button variant="destructive" size="sm" onClick={async () => { await supabase.from('qa_scripts').delete().eq('id', s.id); await load(); }}>Delete</Button></div></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="stats" className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Card><CardHeader><CardTitle>Total Clients</CardTitle></CardHeader><CardContent>{clients.length} <p className="text-xs text-muted-foreground">Active {clients.filter((x) => x.subscription_status === 'active').length} / Trial {clients.filter((x) => x.subscription_status === 'trial').length} / Paused {clients.filter((x) => x.subscription_status === 'paused').length} / Rejected {clients.filter((x) => x.subscription_status === 'rejected').length}</p></CardContent></Card>
+            <Card><CardHeader><CardTitle>Monthly Revenue</CardTitle></CardHeader><CardContent>{monthlyRevenue.toLocaleString()} EGP</CardContent></Card>
+            <Card><CardHeader><CardTitle>New Leads This Month</CardTitle></CardHeader><CardContent>{contacts.filter((c) => c.created_at >= monthStart).length}</CardContent></Card>
+            <Card><CardHeader><CardTitle>Pending Approvals</CardTitle></CardHeader><CardContent>{pending.length}</CardContent></Card>
+            <Card><CardHeader><CardTitle>Conversion Rate</CardTitle></CardHeader><CardContent>{conversionRate.toFixed(1)}%</CardContent></Card>
+            <Card><CardHeader><CardTitle>Total Appointments Today</CardTitle></CardHeader><CardContent>{appointmentsToday}</CardContent></Card>
+          </div>
+          <Card>
+            <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
+            <CardContent className="space-y-2">{activity.map((a) => <div key={a.id} className="text-sm text-muted-foreground">{new Date(a.date).toLocaleString()} - {a.text}</div>)}</CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={Boolean(approveTarget)} onOpenChange={(o) => !o && setApproveTarget(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Approve {approveTarget?.business_name || approveTarget?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Service Type</Label><div className="grid grid-cols-1 gap-2 md:grid-cols-2">{(Object.keys(SERVICE_LABELS) as Exclude<ServiceType, null>[]).map((k) => <Button key={k} type="button" variant={approvalForm.service_type === k ? 'default' : 'outline'} onClick={() => setApprovalForm((p) => ({ ...p, service_type: k, service_label: SERVICE_LABELS[k], features: SERVICE_DEFAULTS[k] }))}>{SERVICE_LABELS[k]}</Button>)}</div></div>
+            <div className="space-y-2"><Label>Service Display Label</Label><Input value={approvalForm.service_label} onChange={(e) => setApprovalForm((p) => ({ ...p, service_label: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Dashboard Sections</Label><div className="grid grid-cols-1 gap-2 md:grid-cols-2">{FEATURES.map((f) => <div className="flex items-center justify-between rounded-lg border p-3" key={f}><span className="capitalize">{f === 'whatsapp' ? 'Messages (WhatsApp inbox)' : f === 'scripts' ? 'Scripts (Q&A library)' : f === 'reports' ? 'Reports & Analytics' : f.charAt(0).toUpperCase() + f.slice(1)}</span><Switch checked={approvalForm.features.includes(f)} onCheckedChange={(v) => setApprovalForm((p) => ({ ...p, features: v ? Array.from(new Set([...p.features, f])) : p.features.filter((x) => x !== f) }))} /></div>)}</div></div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2"><div className="space-y-2"><Label>Monthly Price</Label><Input type="number" value={approvalForm.monthly_price} onChange={(e) => setApprovalForm((p) => ({ ...p, monthly_price: e.target.value }))} /></div><div className="space-y-2"><Label>Plan</Label><Select value={approvalForm.plan} onValueChange={(v) => setApprovalForm((p) => ({ ...p, plan: (v ?? 'Starter') as PlanType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Starter">Starter</SelectItem><SelectItem value="Growth">Growth</SelectItem><SelectItem value="Scale">Scale</SelectItem><SelectItem value="Custom">Custom</SelectItem></SelectContent></Select></div></div>
+            <div className="space-y-2"><Label>Internal Notes</Label><Textarea value={approvalForm.notes} onChange={(e) => setApprovalForm((p) => ({ ...p, notes: e.target.value }))} /></div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setApproveTarget(null)}>Cancel</Button><Button onClick={approve}>Approve & Activate</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={Boolean(declineTarget)} onOpenChange={(o) => !o && setDeclineTarget(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{lang === 'ar' ? 'تأكيد الحذف' : 'Confirm delete'}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {lang === 'ar'
-              ? 'سيتم حذف العميل وملفه الشخصي نهائياً.'
-              : 'This will permanently delete the client and their profile.'}
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteOpen(false); setDeleteTarget(null); }}>
-              {t.common.cancel}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!deleteTarget) return;
-                await handleDelete(deleteTarget.id);
-                setDeleteOpen(false);
-                setDeleteTarget(null);
-              }}
-            >
-              {t.common.delete}
-            </Button>
-          </DialogFooter>
+          <DialogHeader><DialogTitle>Decline {declineTarget?.business_name || declineTarget?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-2"><Label>Rejection reason</Label><Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} /></div>
+          <DialogFooter><Button variant="outline" onClick={() => setDeclineTarget(null)}>Cancel</Button><Button variant="destructive" onClick={decline}>Decline</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(editClient)} onOpenChange={(o) => !o && setEditClient(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Edit {editClient?.business_name || editClient?.full_name}</DialogTitle></DialogHeader>
+          {editClient && <div className="space-y-3"><Input value={editClient.business_name || ''} onChange={(e) => setEditClient({ ...editClient, business_name: e.target.value })} /><Input value={editClient.full_name} onChange={(e) => setEditClient({ ...editClient, full_name: e.target.value })} /><Input value={editClient.phone || ''} onChange={(e) => setEditClient({ ...editClient, phone: e.target.value })} /><DialogFooter><Button variant="outline" onClick={() => setEditClient(null)}>Cancel</Button><Button onClick={async () => { await supabase.from('profiles').update({ full_name: editClient.full_name, business_name: editClient.business_name, phone: editClient.phone }).eq('id', editClient.id); await supabase.from('clients').upsert({ id: editClient.client_id, profile_id: editClient.id, service_type: editClient.service_type, service_label: editClient.service_label, plan: editClient.plan, monthly_price: editClient.monthly_price, notes: editClient.notes, features: editClient.features }, { onConflict: 'id' }); setEditClient(null); await load(); }}>Save</Button></DialogFooter></div>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(featureTarget)} onOpenChange={(o) => !o && setFeatureTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Manage Features</DialogTitle></DialogHeader>
+          {featureTarget && <div className="space-y-3">{FEATURES.map((f) => <div key={f} className="flex items-center justify-between rounded-lg border p-3"><span className="capitalize">{f}</span><Switch checked={(featureTarget.features || []).includes(f)} onCheckedChange={(v) => setFeatureTarget({ ...featureTarget, features: v ? Array.from(new Set([...(featureTarget.features || []), f])) : (featureTarget.features || []).filter((x) => x !== f) })} /></div>)}<DialogFooter><Button variant="outline" onClick={() => setFeatureTarget(null)}>Cancel</Button><Button onClick={async () => { await supabase.from('clients').upsert({ id: featureTarget.client_id, profile_id: featureTarget.id, features: featureTarget.features || [] }, { onConflict: 'id' }); setFeatureTarget(null); await load(); }}>Save</Button></DialogFooter></div>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Delete {deleteTarget?.business_name || deleteTarget?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-2"><Label>Type business name to confirm</Label><Input value={deleteName} onChange={(e) => setDeleteName(e.target.value)} /></div>
+          <DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button><Button variant="destructive" disabled={deleteName.trim() !== (deleteTarget?.business_name || '').trim()} onClick={async () => { if (!deleteTarget) return; await supabase.from('profiles').delete().eq('id', deleteTarget.id); setDeleteTarget(null); await load(); }}>Delete</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(scriptEdit)} onOpenChange={(o) => !o && setScriptEdit(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Edit Script</DialogTitle></DialogHeader>
+          {scriptEdit && <div className="space-y-3"><Input value={scriptEdit.category} onChange={(e) => setScriptEdit({ ...scriptEdit, category: e.target.value })} /><Textarea value={scriptEdit.question} onChange={(e) => setScriptEdit({ ...scriptEdit, question: e.target.value })} /><Textarea value={scriptEdit.answer} onChange={(e) => setScriptEdit({ ...scriptEdit, answer: e.target.value })} /><DialogFooter><Button variant="outline" onClick={() => setScriptEdit(null)}>Cancel</Button><Button onClick={async () => { await supabase.from('qa_scripts').update({ category: scriptEdit.category, question: scriptEdit.question, answer: scriptEdit.answer }).eq('id', scriptEdit.id); setScriptEdit(null); await load(); }}>Save</Button></DialogFooter></div>}
         </DialogContent>
       </Dialog>
     </div>
