@@ -47,6 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const subscriptionStatus: SubscriptionStatus = isAdmin
     ? 'active'
     : ((clientRecord?.subscription_status as SubscriptionStatus) ?? 'pending_approval');
+  const isGated = !isAdmin && subscriptionStatus !== 'active' && subscriptionStatus !== 'trial';
   const serviceLabel = (clientRecord as { service_label?: string | null } | null)?.service_label ?? null;
   const ownerName = (clientRecord as { owner_name?: string | null } | null)?.owner_name ?? profile?.full_name ?? null;
 
@@ -66,6 +67,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isAdmin={isAdmin}
           features={features}
           serviceLabel={serviceLabel}
+          disableNavigation={isGated}
         />
         <main className="ml-16 min-h-screen">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">

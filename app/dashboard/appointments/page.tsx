@@ -62,6 +62,7 @@ export default function AppointmentsPage() {
     client_name: '',
     client_phone: '',
     service: '',
+    cost: 0,
     date: new Date().toISOString().split('T')[0],
     time: '10:00',
     status: 'pending' as Appointment['status'],
@@ -99,6 +100,7 @@ export default function AppointmentsPage() {
         client_name: editTarget.client_name,
         client_phone: editTarget.client_phone || '',
         service: editTarget.service,
+        cost: Number(editTarget.cost || 0),
         date: editTarget.date,
         time: editTarget.time,
         status: editTarget.status,
@@ -137,6 +139,7 @@ export default function AppointmentsPage() {
     setEditTarget(null);
     setForm({
       client_name: '', client_phone: '', service: '',
+      cost: 0,
       date: today, time: '10:00', status: 'pending', notes: '',
     });
   };
@@ -154,6 +157,7 @@ export default function AppointmentsPage() {
       client_name: form.client_name,
       client_phone: form.client_phone || null,
       service: form.service,
+      cost: Number(form.cost || 0),
       date: form.date,
       time: form.time,
       status: form.status,
@@ -208,6 +212,7 @@ export default function AppointmentsPage() {
             <TableRow>
               <TableHead>{ta.clientName}</TableHead>
               <TableHead className="hidden sm:table-cell">{ta.service}</TableHead>
+              <TableHead>Cost</TableHead>
               <TableHead>{ta.date} / {ta.time}</TableHead>
               <TableHead>{ta.status}</TableHead>
               <TableHead className="text-end">{t.common.actions}</TableHead>
@@ -221,6 +226,7 @@ export default function AppointmentsPage() {
                   {appt.client_phone && <p className="text-xs text-muted-foreground" dir="ltr">{appt.client_phone}</p>}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{appt.service}</TableCell>
+                <TableCell>{Number(appt.cost || 0).toLocaleString()} EGP</TableCell>
                 <TableCell>
                   <p className="text-sm">{appt.date}</p>
                   <p className="text-xs text-muted-foreground">{appt.time}</p>
@@ -284,6 +290,10 @@ export default function AppointmentsPage() {
               <div className="space-y-2">
                 <Label htmlFor="service">{ta.service}</Label>
                 <Input id="service" value={form.service} onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} placeholder={ta.servicePlaceholder} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cost">Booking Cost (EGP)</Label>
+                <Input id="cost" type="number" min="0" value={form.cost} onChange={(e) => setForm((p) => ({ ...p, cost: Number(e.target.value || 0) }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

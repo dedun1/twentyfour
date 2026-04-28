@@ -40,6 +40,7 @@ export interface Appointment {
   client_name: string;
   client_phone?: string;
   service: string;
+  cost?: number | null;
   date: string;
   time: string;
   status: AppointmentStatus;

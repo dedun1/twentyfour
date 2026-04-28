@@ -2,15 +2,26 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  BarChart3,
+  Bell,
   Calendar,
+  CalendarCheck,
   Check,
+  CheckCircle2,
   ChevronRight,
+  Clock3,
+  FileText,
+  LineChart,
   Loader2,
+  Mail,
   MessageSquare,
   Pencil,
   Plus,
   Search,
+  Settings2,
+  Shield,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -29,6 +40,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { TwentyFourStatsTab } from '@/app/admin/components/TwentyFourStatsTab';
+import { ClientStatsTab } from '@/app/admin/components/ClientStatsTab';
+import { DashboardControlTab } from '@/app/admin/components/DashboardControlTab';
+import { AdminsTab } from '@/app/admin/components/AdminsTab';
+import { TwentyFourAppointmentsTab } from '@/app/admin/components/TwentyFourAppointmentsTab';
+import { EmptyState } from '@/app/admin/components/EmptyState';
 import type {
   AppointmentStatus,
   ContactRequest,
@@ -42,7 +59,19 @@ import type {
   SubscriptionStatus,
 } from '@/lib/types';
 
-type TabKey = 'pending' | 'clients' | 'appointments' | 'inbox' | 'scripts' | 'reminders' | 'contacts' | 'stats';
+type TabKey =
+  | 'pending'
+  | 'clients'
+  | 'admins'
+  | 'appointments'
+  | 'twentyfour-appointments'
+  | 'inbox'
+  | 'scripts'
+  | 'reminders'
+  | 'contacts'
+  | 'twentyfour-stats'
+  | 'client-stats'
+  | 'dashboard-control';
 type PlanType = 'Starter' | 'Growth' | 'Scale' | 'Custom';
 
 type ProfileRow = {
@@ -79,6 +108,17 @@ type ClientRow = {
 type AdminClientRow = ProfileRow & ClientRow & {
   internal_notes?: string | null;
 };
+type AdminTabRow = {
+  clientId: string;
+  profileId: string;
+  businessName: string;
+  contactEmail: string;
+  status: SubscriptionStatus;
+  plan: string | null;
+  monthlyPrice: number | null;
+  features: FeatureKey[];
+  approvedAt: string | null;
+};
 
 type AppointmentRow = {
   id: string;
@@ -87,6 +127,7 @@ type AppointmentRow = {
   client_name: string;
   client_phone?: string | null;
   service: string;
+  cost?: number | null;
   date: string;
   time: string;
   status: AppointmentStatus;
@@ -130,8 +171,8 @@ const SERVICE_DEFAULTS: Record<Exclude<ServiceType, null>, FeatureKey[]> = {
 const STATUS_BADGE_CLASS: Record<SubscriptionStatus, string> = {
   active: 'bg-green-500/15 text-green-500',
   trial: 'bg-blue-500/15 text-blue-500',
-  pending_approval: 'bg-yellow-500/15 text-yellow-500',
-  paused: 'bg-slate-500/15 text-slate-500',
+  pending_approval: 'bg-amber-500/15 text-amber-500',
+  paused: 'bg-yellow-500/15 text-yellow-500',
   rejected: 'bg-red-500/15 text-red-500',
   cancelled: 'bg-zinc-500/15 text-zinc-400',
 };
@@ -162,6 +203,7 @@ const emptyAppointmentForm = {
   client_name: '',
   client_phone: '',
   service: '',
+  cost: 0,
   date: '',
   time: '',
   status: 'pending' as AppointmentStatus,
@@ -200,6 +242,7 @@ export default function AdminPage() {
   const [myProfileId, setMyProfileId] = useState<string | null>(null);
 
   const [clients, setClients] = useState<AdminClientRow[]>([]);
+  const [adminClients, setAdminClients] = useState<AdminClientRow[]>([]);
   const [appointmentClients, setAppointmentClients] = useState<AppointmentClient[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -249,10 +292,10 @@ export default function AdminPage() {
   const [appointmentFrom, setAppointmentFrom] = useState('');
   const [appointmentTo, setAppointmentTo] = useState('');
   const [appointmentDatePreset, setAppointmentDatePreset] = useState<DatePreset>('all');
+  const [clientsSearch, setClientsSearch] = useState('');
+  const [adminsSearch, setAdminsSearch] = useState('');
   const [contactFilter, setContactFilter] = useState<'all' | ContactRequestStatus>('all');
   const [contactSearch, setContactSearch] = useState('');
-  const [appointmentsTodayCount, setAppointmentsTodayCount] = useState(0);
-  const [appointmentsMonthCount, setAppointmentsMonthCount] = useState(0);
   const today = new Date().toISOString().split('T')[0];
 
   const ui = {
@@ -267,7 +310,6 @@ export default function AdminPage() {
     scriptsLibrary: lang === 'ar' ? 'مكتبة السكريبتات' : 'Scripts Library',
     reminders: lang === 'ar' ? 'التذكيرات' : 'Reminders',
     contactRequests: lang === 'ar' ? 'طلبات التواصل' : 'Contact Requests',
-    systemStats: lang === 'ar' ? 'إحصائيات النظام' : 'System Stats',
     addNewClient: lang === 'ar' ? 'إضافة عميل جديد' : 'Add New Client',
     searchClients: lang === 'ar' ? 'ابحث عن العملاء...' : 'Search clients...',
     appointmentsCount: lang === 'ar' ? 'موعد' : 'appointments',
@@ -276,6 +318,7 @@ export default function AdminPage() {
     selectClient: lang === 'ar' ? 'اختر العميل' : 'Select client',
     customerName: lang === 'ar' ? 'اسم العميل' : 'Customer Name',
     customerPhone: lang === 'ar' ? 'هاتف العميل' : 'Customer Phone',
+    bookingCost: lang === 'ar' ? 'تكلفة الحجز (EGP)' : 'Booking Cost (EGP)',
     service: lang === 'ar' ? 'الخدمة' : 'Service',
     status: lang === 'ar' ? 'الحالة' : 'Status',
     date: lang === 'ar' ? 'التاريخ' : 'Date',
@@ -307,13 +350,6 @@ export default function AdminPage() {
     convertToClient: lang === 'ar' ? 'تحويل إلى عميل' : 'Convert to Client',
     adminNotes: lang === 'ar' ? 'ملاحظات الإدارة' : 'Admin Notes',
     saveNotes: lang === 'ar' ? 'حفظ الملاحظات' : 'Save Notes',
-    totalClients: lang === 'ar' ? 'إجمالي العملاء' : 'Total Clients',
-    activeClients: lang === 'ar' ? 'العملاء النشطون' : 'Active Clients',
-    totalAppointmentsToday: lang === 'ar' ? 'إجمالي مواعيد اليوم' : 'Total Appointments Today',
-    totalAppointmentsThisMonth: lang === 'ar' ? 'إجمالي مواعيد هذا الشهر' : 'Total Appointments This Month',
-    totalConversations: lang === 'ar' ? 'إجمالي المحادثات' : 'Total Conversations',
-    totalScripts: lang === 'ar' ? 'إجمالي السكريبتات' : 'Total Scripts',
-    monthlyRevenue: lang === 'ar' ? 'الإيراد الشهري' : 'Monthly Revenue',
     confirmDelete: lang === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete',
     deleteActionCannotBeUndone: lang === 'ar' ? 'هذا الإجراء لا يمكن التراجع عنه.' : 'This action cannot be undone.',
     clientRequired: lang === 'ar' ? 'العميل واسم العميل والخدمة مطلوبة' : 'Client, customer name, and service are required',
@@ -330,6 +366,7 @@ export default function AdminPage() {
     const [
       { data: authData, error: authError },
       { data: profileRows, error: profileError },
+      { data: adminProfileRows, error: adminProfileError },
       { data: clientRows, error: clientError },
       { data: appointmentClientRowsRaw, error: appointmentClientRowsError },
       { data: appointmentRows, error: appointmentError },
@@ -337,11 +374,12 @@ export default function AdminPage() {
       { data: scriptRows, error: scriptError },
       { data: reminderRows, error: reminderError },
       { data: contactRows, error: contactError },
-      { count: todayAppointmentsCount, error: todayAppointmentsError },
-      { count: monthAppointmentsCount, error: monthAppointmentsError },
+      { error: todayAppointmentsError },
+      { error: monthAppointmentsError },
     ] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('*').eq('role', 'admin').order('created_at', { ascending: false }),
       supabase.from('clients').select('*').order('created_at', { ascending: false }),
       supabase.from('clients').select('id, business_name, subscription_status').order('business_name', { ascending: true }),
       supabase.from('appointments').select('*, clients(id, business_name)').order('date', { ascending: false }).order('time', { ascending: true }),
@@ -356,6 +394,7 @@ export default function AdminPage() {
     const firstError =
       authError ||
       profileError ||
+      adminProfileError ||
       clientError ||
       appointmentClientRowsError ||
       appointmentError ||
@@ -391,7 +430,25 @@ export default function AdminPage() {
       } as AdminClientRow;
     });
 
+    const mergedAdminClients = ((adminProfileRows || []) as ProfileRow[]).map((profile) => {
+      const client = ((clientRows || []) as ClientRow[]).find((row) => row.id === profile.client_id || row.profile_id === profile.id);
+      return {
+        ...profile,
+        ...client,
+        client_id: profile.client_id ?? client?.id ?? null,
+        business_name: client?.business_name ?? profile.business_name ?? '',
+        contact_email: client?.contact_email ?? profile.email ?? '',
+        contact_phone: client?.contact_phone ?? profile.phone ?? '',
+        subscription_status: client?.subscription_status ?? 'pending_approval',
+        features: client?.features ?? [],
+        monthly_price: client?.monthly_price ?? null,
+        plan: client?.plan ?? '',
+        approved_at: client?.approved_at ?? null,
+        internal_notes: client?.notes ?? null,
+      } as AdminClientRow;
+    });
     setClients(mergedClients);
+    setAdminClients(mergedAdminClients);
     setAppointmentClients((appointmentClientRowsRaw || []) as AppointmentClient[]);
     console.log('[Admin/Appointments] raw appointments:', appointmentRows || []);
     setAppointments(((appointmentRows || []) as Array<Record<string, unknown>>).map((row) => ({
@@ -401,6 +458,7 @@ export default function AdminPage() {
       client_name: String((row.customer_name as string | undefined) ?? (row.client_name as string | undefined) ?? ''),
       client_phone: (row.customer_phone as string | null | undefined) ?? (row.client_phone as string | null | undefined) ?? null,
       service: String(row.service ?? ''),
+      cost: Number((row.cost as number | null | undefined) ?? 0),
       date: String(row.date ?? ''),
       time: String(row.time ?? ''),
       status: (row.status as AppointmentStatus | undefined) ?? 'pending',
@@ -412,8 +470,6 @@ export default function AdminPage() {
     setScripts((scriptRows || []) as QAScript[]);
     setReminders(((reminderRows || []) as ReminderRow[]).map((row) => ({ ...row, status: row.sent ? 'sent' : 'pending' })));
     setContacts((contactRows || []) as ContactRequestRow[]);
-    setAppointmentsTodayCount(todayAppointmentsCount ?? 0);
-    setAppointmentsMonthCount(monthAppointmentsCount ?? 0);
     setLoading(false);
   };
 
@@ -528,6 +584,44 @@ export default function AdminPage() {
     });
   }, [contactFilter, contactSearch, contacts]);
 
+  const filteredClients = useMemo(() => {
+    const query = clientsSearch.trim().toLowerCase();
+    if (!query) return clients;
+    return clients.filter((client) => {
+      const business = (client.business_name || '').toLowerCase();
+      const email = (client.contact_email || client.email || '').toLowerCase();
+      return business.includes(query) || email.includes(query);
+    });
+  }, [clients, clientsSearch]);
+
+  const filteredAdminClients = useMemo(() => {
+    const query = adminsSearch.trim().toLowerCase();
+    const adminRows = adminClients
+      .map((client) => {
+        const profileId = client.profile_id || '';
+        const clientId = client.id || '';
+        if (!profileId || !clientId) return null;
+        return {
+          clientId,
+          profileId,
+          businessName: client.business_name || client.full_name || '',
+          contactEmail: client.contact_email || client.email || '',
+          status: client.subscription_status || 'pending_approval',
+          plan: client.plan || null,
+          monthlyPrice: client.monthly_price ?? null,
+          features: client.features || [],
+          approvedAt: client.approved_at || null,
+        } satisfies AdminTabRow;
+      })
+      .filter((row): row is AdminTabRow => Boolean(row));
+    if (!query) return adminRows;
+    return adminRows.filter((client) => {
+      const business = client.businessName.toLowerCase();
+      const email = client.contactEmail.toLowerCase();
+      return business.includes(query) || email.includes(query);
+    });
+  }, [adminClients, adminsSearch]);
+
   const openCreateClient = () => {
     setClientDialogMode('create');
     setClientEditorTarget(null);
@@ -564,6 +658,7 @@ export default function AdminPage() {
         client_name: appointment.client_name,
         client_phone: appointment.client_phone ?? '',
         service: appointment.service,
+        cost: Number(appointment.cost || 0),
         date: appointment.date,
         time: appointment.time,
         status: appointment.status,
@@ -746,12 +841,13 @@ export default function AdminPage() {
 
   const saveClient = async () => {
     await withBusy(clientDialogMode === 'create' ? 'client-create' : 'client-save', async () => {
-      if (!clientForm.full_name.trim() || !clientForm.email.trim()) {
-        toast.error('Full name and email are required');
-        return;
-      }
-
       if (clientDialogMode === 'create') {
+        const derivedFullName = clientForm.business_name.trim();
+        const derivedEmail = clientForm.contact_email.trim();
+        if (!derivedFullName || !derivedEmail) {
+          toast.error('Business name and contact email are required');
+          return;
+        }
         if (!clientForm.password.trim()) {
           toast.error('Password is required for new clients');
           return;
@@ -761,9 +857,9 @@ export default function AdminPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: clientForm.email,
+            email: derivedEmail,
             password: clientForm.password,
-            full_name: clientForm.full_name,
+            full_name: derivedFullName,
             phone: clientForm.contact_phone,
             business_name: clientForm.business_name,
           }),
@@ -776,7 +872,7 @@ export default function AdminPage() {
         const { data: profile, error: profileLookupError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('email', clientForm.email)
+          .eq('email', derivedEmail)
           .maybeSingle();
         if (profileLookupError) throw profileLookupError;
         if (!profile) throw new Error('Created user profile was not found');
@@ -786,7 +882,7 @@ export default function AdminPage() {
           .insert({
             profile_id: profile.id,
             business_name: clientForm.business_name || null,
-            contact_email: clientForm.contact_email || clientForm.email,
+            contact_email: clientForm.contact_email || derivedEmail,
             contact_phone: clientForm.contact_phone || null,
             city: clientForm.city || null,
             subscription_status: clientForm.subscription_status,
@@ -807,7 +903,7 @@ export default function AdminPage() {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
-            full_name: clientForm.full_name,
+            full_name: clientForm.business_name || null,
           })
           .eq('client_id', clientId);
         if (profileError) {
@@ -836,14 +932,12 @@ export default function AdminPage() {
           throw clientError;
         }
 
-        setClients((prev) => prev.map((client) => (
+        const updateClientRecord = (client: AdminClientRow) => (
           (client.client_id || client.id) === clientId
             ? {
                 ...client,
-                full_name: clientForm.full_name,
-                email: clientForm.email,
                 business_name: clientForm.business_name || null,
-                contact_email: clientForm.contact_email || clientForm.email,
+                contact_email: clientForm.contact_email || client.contact_email || client.email,
                 contact_phone: clientForm.contact_phone || null,
                 city: clientForm.city || null,
                 subscription_status: clientForm.subscription_status,
@@ -853,7 +947,10 @@ export default function AdminPage() {
                 internal_notes: clientForm.internal_notes || null,
               }
             : client
-        )));
+        );
+
+        setClients((prev) => prev.map(updateClientRecord));
+        setAdminClients((prev) => prev.map(updateClientRecord));
 
         setAppointmentClients((prev) => prev.map((client) => (
           client.id === clientId
@@ -891,6 +988,11 @@ export default function AdminPage() {
           ? { ...item, subscription_status: nextStatus }
           : item
       )));
+      setAdminClients((prev) => prev.map((item) => (
+        (item.client_id || item.id) === clientId
+          ? { ...item, subscription_status: nextStatus }
+          : item
+      )));
 
       setAppointmentClients((prev) => prev.map((item) => (
         item.id === clientId
@@ -912,7 +1014,7 @@ export default function AdminPage() {
         return;
       }
 
-      const linkedClient = clients.find((client) => client.client_id === appointmentForm.clientId);
+      const linkedClient = [...clients, ...adminClients].find((client) => client.client_id === appointmentForm.clientId);
       if (!linkedClient) {
         toast.error(ui.clientNotFound);
         return;
@@ -925,6 +1027,7 @@ export default function AdminPage() {
         customer_name: appointmentForm.client_name.trim(),
         customer_phone: appointmentForm.client_phone.trim() || null,
         service: appointmentForm.service.trim(),
+        cost: Number(appointmentForm.cost || 0),
         date: appointmentForm.date.slice(0, 10),
         time: appointmentForm.time.slice(0, 5),
         status: appointmentForm.status,
@@ -1173,6 +1276,7 @@ export default function AdminPage() {
         }
 
         setClients((prev) => prev.filter((c) => c.id !== clientId));
+        setAdminClients((prev) => prev.filter((c) => c.id !== clientId));
         toast.success(`${confirmDelete.label} deleted`);
         setAppointmentClients((prev) => prev.filter((c) => c.id !== clientId));
       } else if (confirmDelete.type === 'appointment') {
@@ -1270,43 +1374,91 @@ export default function AdminPage() {
     await markContactStatus(contact.id, 'converted');
   };
 
-  const totalAppointmentsToday = appointmentsTodayCount;
-  const totalAppointmentsThisMonth = appointmentsMonthCount;
-
   const renderBusyIcon = (key: string) => busyKey === key ? <Loader2 className="animate-spin" /> : null;
+  const tabSections: Array<{
+    label: string;
+    items: Array<{ key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }>;
+  }> = [
+    {
+      label: 'CLIENTS',
+      items: [
+        { key: 'pending', label: ui.pendingApprovals, icon: Clock3 },
+        { key: 'clients', label: ui.allClients, icon: Users },
+        { key: 'admins', label: 'Admins', icon: Shield },
+      ],
+    },
+    {
+      label: 'APPOINTMENTS',
+      items: [
+        { key: 'appointments', label: ui.allAppointments, icon: Calendar },
+        { key: 'twentyfour-appointments', label: 'TwentyFour Appointments', icon: CalendarCheck },
+      ],
+    },
+    {
+      label: 'TOOLS',
+      items: [
+        { key: 'inbox', label: ui.inbox, icon: MessageSquare },
+        { key: 'scripts', label: ui.scriptsLibrary, icon: FileText },
+        { key: 'reminders', label: ui.reminders, icon: Bell },
+        { key: 'contacts', label: ui.contactRequests, icon: Mail },
+      ],
+    },
+    {
+      label: 'ANALYTICS',
+      items: [
+        { key: 'twentyfour-stats', label: 'TwentyFour Stats', icon: BarChart3 },
+        { key: 'client-stats', label: 'Client Stats', icon: LineChart },
+        { key: 'dashboard-control', label: 'Dashboard Control', icon: Settings2 },
+      ],
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-[1400px] space-y-6 p-6 lg:p-8">
+      <div className="border-b pb-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{ui.adminControlCenter}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {ui.adminSubtitle}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">TwentyFour platform management</p>
         </div>
-        <Button onClick={openCreateClient}>
-          <Plus />
-          {ui.addNewClient}
-        </Button>
       </div>
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)} className="space-y-6">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2">
-          <TabsTrigger value="pending">{ui.pendingApprovals} <Badge className="ms-1 bg-red-500/15 text-red-500">{pendingClients.length}</Badge></TabsTrigger>
-          <TabsTrigger value="clients">{ui.allClients}</TabsTrigger>
-          <TabsTrigger value="appointments">{ui.allAppointments}</TabsTrigger>
-          <TabsTrigger value="inbox">{ui.inbox}</TabsTrigger>
-          <TabsTrigger value="scripts">{ui.scriptsLibrary}</TabsTrigger>
-          <TabsTrigger value="reminders">{ui.reminders}</TabsTrigger>
-          <TabsTrigger value="contacts">{ui.contactRequests}</TabsTrigger>
-          <TabsTrigger value="stats">{ui.systemStats}</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+          <TabsList className="flex h-auto w-full shrink-0 items-start gap-3 overflow-x-auto bg-transparent p-0 pb-2 lg:w-56 lg:flex-col lg:items-stretch lg:justify-start lg:gap-4 lg:overflow-visible lg:pb-0">
+            {tabSections.map((section) => (
+              <div key={section.label} className="flex shrink-0 flex-col gap-1 lg:w-full">
+                <div className="px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground">{section.label}</div>
+                {section.items.map(({ key, label, icon: Icon }) => (
+                  <TabsTrigger
+                    key={key}
+                    value={key}
+                    className="inline-flex w-auto items-center justify-start gap-2 rounded-lg px-3 py-2 text-left text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:border-l-2 data-[state=active]:border-amber-500 data-[state=active]:bg-accent data-[state=active]:font-medium data-[state=active]:text-foreground lg:w-full"
+                  >
+                    <Icon className="size-4" />
+                    <span>{label}</span>
+                    {key === 'pending' ? <Badge className="ms-auto bg-red-500/15 text-red-500">{pendingClients.length}</Badge> : null}
+                  </TabsTrigger>
+                ))}
+              </div>
+            ))}
+          </TabsList>
+          <div className="min-w-0 flex-1 space-y-6">
 
         <TabsContent value="pending" className="space-y-4">
+          <div className="flex justify-end">
+            <Button className="bg-amber-500 text-black hover:bg-amber-400" onClick={openCreateClient}>
+              <Plus />
+              {ui.addNewClient}
+            </Button>
+          </div>
           {loading ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">{ui.loadingPending}</CardContent></Card>
           ) : pendingClients.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">{ui.noPending}</CardContent></Card>
+            <EmptyState
+              icon={CheckCircle2}
+              title="All caught up"
+              description="No clients waiting for approval right now."
+            />
           ) : pendingClients.map((client) => (
             <Card key={client.id}>
               <CardContent className="pt-6">
@@ -1347,58 +1499,125 @@ export default function AdminPage() {
           {loading ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">{ui.loadingClients}</CardContent></Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {clients.map((client) => (
-                <Card key={client.id}>
-                  <CardHeader className="gap-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <CardTitle className="text-base">{client.business_name || client.full_name || ui.untitledClient}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{client.contact_email || client.email}</p>
-                      </div>
-                      <Badge className={STATUS_BADGE_CLASS[client.subscription_status ?? 'pending_approval']}>
-                        {client.subscription_status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><p className="text-muted-foreground">{ui.plan}</p><p>{client.plan || '-'}</p></div>
-                      <div><p className="text-muted-foreground">{ui.monthlyPrice}</p><p>{Number(client.monthly_price || 0).toLocaleString()} EGP</p></div>
-                      <div><p className="text-muted-foreground">{ui.approvedAt}</p><p>{client.approved_at ? new Date(client.approved_at).toLocaleDateString() : '-'}</p></div>
-                      <div><p className="text-muted-foreground">{ui.city}</p><p>{client.city || '-'}</p></div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(client.features || []).map((feature) => (
-                        <Badge key={feature} variant="secondary">{feature}</Badge>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => openEditClient(client)}>{common.edit}</Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleClientStatus(client, client.subscription_status === 'paused' ? 'active' : 'paused')}
-                      >
-                        {renderBusyIcon(`client-status-${client.id}`)}
-                        {client.subscription_status === 'paused' ? 'Activate' : ui.pause}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => setConfirmDelete({
-                          type: 'client',
-                          id: client.client_id || client.id,
-                          label: client.business_name || client.full_name || ta.clientName,
-                        })}
-                      >
-                        <Trash2 />
-                        {ui.delete}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold">{ui.allClients}</h2>
+                  <Badge variant="secondary">{filteredClients.length}</Badge>
+                </div>
+                <Button className="bg-amber-500 text-black hover:bg-amber-400" onClick={openCreateClient}>
+                  <Plus />
+                  {ui.addNewClient}
+                </Button>
+              </div>
+              <Input
+                value={clientsSearch}
+                onChange={(event) => setClientsSearch(event.target.value)}
+                placeholder={ui.searchClients}
+              />
+              <Card>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{ta.clientName}</TableHead>
+                        <TableHead>{ui.status}</TableHead>
+                        <TableHead>{ui.plan}</TableHead>
+                        <TableHead>{ui.monthlyPrice}</TableHead>
+                        <TableHead>Features</TableHead>
+                        <TableHead>{ui.approvedAt}</TableHead>
+                        <TableHead className="text-right">{ui.actions}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => {
+                        const clientId = client.client_id || client.id;
+                        const isPaused = client.subscription_status === 'paused';
+                        return (
+                          <TableRow
+                            key={client.id}
+                            className={`transition-colors hover:bg-muted/40 ${isPaused ? 'opacity-80' : ''}`}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold uppercase text-amber-500">
+                                  {(client.business_name || client.full_name || 'C').charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{client.business_name || client.full_name || ui.untitledClient}</p>
+                                  <p className="text-xs text-muted-foreground">{client.contact_email || client.email || '-'}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={STATUS_BADGE_CLASS[client.subscription_status ?? 'pending_approval']}>
+                                {client.subscription_status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{client.plan || '-'}</TableCell>
+                            <TableCell>{Number(client.monthly_price || 0).toLocaleString()} EGP</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {(client.features || []).map((feature) => (
+                                  <Badge key={feature} variant="secondary" className="text-xs">{feature}</Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {client.approved_at ? new Date(client.approved_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => openEditClient(client)}>
+                                  <Pencil />
+                                  {common.edit}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className={isPaused ? 'border-green-500/40 text-green-600 hover:bg-green-500/10' : 'border-yellow-500/40 text-yellow-600 hover:bg-yellow-500/10'}
+                                  onClick={() => handleClientStatus(client, isPaused ? 'active' : 'paused')}
+                                >
+                                  <Check />
+                                  {isPaused ? 'Resume' : ui.pause}
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setConfirmDelete({
+                                    type: 'client',
+                                    id: clientId,
+                                    label: client.business_name || client.full_name || ta.clientName,
+                                  })}
+                                >
+                                  <Trash2 />
+                                  {ui.delete}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="admins" className="space-y-4">
+          <AdminsTab
+            clients={filteredAdminClients}
+            search={adminsSearch}
+            onSearchChange={setAdminsSearch}
+            currentProfileId={myProfileId}
+            onEdit={(clientId) => {
+              const fullClient = adminClients.find((item) => (item.client_id || item.id) === clientId);
+              if (fullClient) openEditClient(fullClient);
+            }}
+            onRefresh={load}
+          />
         </TabsContent>
 
         <TabsContent value="appointments" className="space-y-4">
@@ -1509,6 +1728,7 @@ export default function AdminPage() {
                           {clientFilter === 'all' ? <TableHead>{ta.clientName}</TableHead> : null}
                           <TableHead>{ta.clientPhone}</TableHead>
                           <TableHead>{ui.service}</TableHead>
+                          <TableHead>{ui.bookingCost}</TableHead>
                           <TableHead>{ui.date}</TableHead>
                           <TableHead>{ui.time}</TableHead>
                           <TableHead>{ui.status}</TableHead>
@@ -1522,6 +1742,7 @@ export default function AdminPage() {
                             {clientFilter === 'all' ? <TableCell>{appointment.clients?.business_name || clientsByClientId[appointment.client_id || '']?.business_name || '-'}</TableCell> : null}
                             <TableCell>{appointment.client_phone || '-'}</TableCell>
                             <TableCell>{appointment.service}</TableCell>
+                            <TableCell>{Number(appointment.cost || 0).toLocaleString()} EGP</TableCell>
                             <TableCell>{appointment.date}</TableCell>
                             <TableCell>{appointment.time}</TableCell>
                             <TableCell>
@@ -1546,6 +1767,10 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="twentyfour-appointments" className="space-y-4">
+          <TwentyFourAppointmentsTab />
         </TabsContent>
 
         <TabsContent value="inbox" className="space-y-4">
@@ -1594,7 +1819,15 @@ export default function AdminPage() {
               New Script
             </Button>
           </div>
-          {groupedScripts.map((group) => (
+          {groupedScripts.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No scripts yet"
+              description="Scripts let your AI agents respond consistently for each client. Create your first script to get started."
+              actionLabel="+ New Script"
+              onAction={() => openScriptDialog()}
+            />
+          ) : groupedScripts.map((group) => (
             <Card key={group.client.id}>
               <Collapsible defaultOpen>
                 <CollapsibleTrigger className="flex w-full items-center justify-between px-6 py-4 text-left">
@@ -1645,7 +1878,15 @@ export default function AdminPage() {
               New Reminder
             </Button>
           </div>
-          {groupedReminders.map((group) => (
+          {groupedReminders.length === 0 ? (
+            <EmptyState
+              icon={Bell}
+              title="No reminders yet"
+              description="Schedule automated reminders for client appointments and follow-ups."
+              actionLabel="+ New Reminder"
+              onAction={() => openReminderDialog()}
+            />
+          ) : groupedReminders.map((group) => (
             <Card key={group.client.id}>
               <Collapsible defaultOpen>
                 <CollapsibleTrigger className="flex w-full items-center justify-between px-6 py-4 text-left">
@@ -1705,7 +1946,17 @@ export default function AdminPage() {
               </SelectContent>
             </Select>
           </div>
-          {filteredContacts.map((contact) => (
+          {filteredContacts.length === 0 && contacts.length === 0 ? (
+            <EmptyState
+              icon={Mail}
+              title="No contact requests"
+              description="Form submissions from twentyfour.app/contact will appear here."
+            />
+          ) : filteredContacts.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">No matching contact requests.</CardContent>
+            </Card>
+          ) : filteredContacts.map((contact) => (
             <Card key={contact.id}>
               <CardContent className="space-y-4 pt-6">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1760,18 +2011,19 @@ export default function AdminPage() {
           ))}
         </TabsContent>
 
-        <TabsContent value="stats" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card><CardHeader><CardTitle>{ui.totalClients}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{clients.length}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.activeClients}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{clients.filter((client) => client.subscription_status === 'active').length}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.pendingApprovals}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{pendingClients.length}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.totalAppointmentsToday}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{totalAppointmentsToday}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.totalAppointmentsThisMonth}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{totalAppointmentsThisMonth}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.totalConversations}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{conversations.length}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.totalScripts}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{scripts.length}</CardContent></Card>
-            <Card><CardHeader><CardTitle>{ui.monthlyRevenue}</CardTitle></CardHeader><CardContent className="text-3xl font-semibold">{clients.filter((client) => client.subscription_status === 'active').reduce((sum, client) => sum + Number(client.monthly_price || 0), 0).toLocaleString()} EGP</CardContent></Card>
-          </div>
+        <TabsContent value="twentyfour-stats" className="space-y-4">
+          <TwentyFourStatsTab />
         </TabsContent>
+
+        <TabsContent value="client-stats" className="space-y-4">
+          <ClientStatsTab />
+        </TabsContent>
+
+        <TabsContent value="dashboard-control" className="space-y-4">
+          <DashboardControlTab />
+        </TabsContent>
+          </div>
+        </div>
       </Tabs>
 
       <Dialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}>
@@ -1880,14 +2132,6 @@ export default function AdminPage() {
             <div className="space-y-2">
               <Label>Business Name</Label>
               <Input value={clientForm.business_name} onChange={(event) => setClientForm((current) => ({ ...current, business_name: event.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input value={clientForm.full_name} onChange={(event) => setClientForm((current) => ({ ...current, full_name: event.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={clientForm.email} onChange={(event) => setClientForm((current) => ({ ...current, email: event.target.value }))} />
             </div>
             {clientDialogMode === 'create' ? (
               <div className="space-y-2">
@@ -2008,6 +2252,10 @@ export default function AdminPage() {
             <div className="space-y-2">
               <Label>{ui.service}</Label>
               <Input value={appointmentForm.service} onChange={(event) => setAppointmentForm((current) => ({ ...current, service: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{ui.bookingCost}</Label>
+              <Input type="number" min="0" value={appointmentForm.cost} onChange={(event) => setAppointmentForm((current) => ({ ...current, cost: Number(event.target.value || 0) }))} />
             </div>
             <div className="space-y-2">
               <Label>{ui.status}</Label>

@@ -46,9 +46,10 @@ interface SidebarProps {
   isAdmin?: boolean;
   features?: FeatureKey[];
   serviceLabel?: string | null;
+  disableNavigation?: boolean;
 }
 
-export function Sidebar({ isAdmin = false, features = [], serviceLabel = null }: SidebarProps) {
+export function Sidebar({ isAdmin = false, features = [], serviceLabel = null, disableNavigation = false }: SidebarProps) {
   const [expanded, setExpanded] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -56,11 +57,13 @@ export function Sidebar({ isAdmin = false, features = [], serviceLabel = null }:
   const t = useT(lang);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
+  const hasFeature = (feature: FeatureKey) => features.includes(feature);
+
   const visibleItems = navItems.filter((item) => {
     if (isAdmin) return true;
     if (item.alwaysShow) return true;
     if (!item.feature) return false;
-    return features.includes(item.feature);
+    return hasFeature(item.feature);
   });
 
   const handleLogout = async () => {
@@ -162,7 +165,13 @@ export function Sidebar({ isAdmin = false, features = [], serviceLabel = null }:
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 space-y-1 p-2">
+          <nav
+            aria-disabled={disableNavigation}
+            className={cn(
+              'flex-1 space-y-1 p-2 transition-opacity',
+              disableNavigation ? 'pointer-events-none opacity-50' : 'opacity-100'
+            )}
+          >
             {visibleItems.map((item) => {
               const active = isActive(item.href);
               const label = t.sidebar[item.key];

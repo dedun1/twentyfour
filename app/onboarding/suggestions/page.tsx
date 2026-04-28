@@ -10,6 +10,43 @@ import { useT } from '@/lib/translations';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import type { Suggestion, OnboardingData } from '@/lib/types';
 
+const ARABIC_SUGGESTION_MAP: Record<string, { title: string; description: string; category: string }> = {
+  'Appointment Management': {
+    title: 'إدارة المواعيد',
+    description: 'أضف وأدر مواعيدك بالكامل من لوحة التحكم',
+    category: 'المواعيد',
+  },
+  'AI Assistant': {
+    title: 'المساعد الذكي',
+    description: 'استخدم المساعد الذكي للحصول على إجابات فورية ومساعدة في عملك',
+    category: 'المساعد الذكي',
+  },
+  'Smart Reminders': {
+    title: 'تذكيرات ذكية',
+    description: 'أنشئ تذكيرات تلقائية لعملائك قبل مواعيدهم',
+    category: 'التذكيرات',
+  },
+  'Performance Tracking': {
+    title: 'تتبع الأداء',
+    description: 'راقب أداء عملك من خلال التقارير والرسوم البيانية المفصلة',
+    category: 'التقارير',
+  },
+};
+
+function localizeSuggestions(items: Suggestion[], lang: 'ar' | 'en'): Suggestion[] {
+  if (lang !== 'ar') return items;
+  return items.map((item) => {
+    const mapped = ARABIC_SUGGESTION_MAP[item.title];
+    if (!mapped) return item;
+    return {
+      ...item,
+      title: mapped.title,
+      description: mapped.description,
+      category: mapped.category,
+    };
+  });
+}
+
 const getFallbackSuggestions = (lang: 'ar' | 'en'): Suggestion[] => {
   if (lang === 'ar') {
     return [
@@ -104,7 +141,7 @@ export default function SuggestionsPage() {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-            setSuggestions(data.suggestions);
+            setSuggestions(localizeSuggestions(data.suggestions, lang));
           } else {
             setSuggestions(getFallbackSuggestions(lang));
           }

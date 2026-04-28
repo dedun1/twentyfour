@@ -61,10 +61,10 @@ export function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
           <LanguageSwitcher />
-          <Button variant="ghost" size="sm" render={<Link href="/login" />}>
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/login" />}>
             {t.nav.login}
           </Button>
-          <Button size="sm" render={<Link href="/register" />}>
+          <Button size="sm" nativeButton={false} render={<Link href="/register" />}>
             {t.nav.register}
           </Button>
         </div>
@@ -103,10 +103,10 @@ export function Navbar() {
               </div>
               <div className="mt-4 flex flex-col gap-2 px-4">
                 <LanguageSwitcher />
-                <Button variant="outline" render={<Link href="/login" onClick={() => setOpen(false)} />}>
+                <Button variant="outline" nativeButton={false} render={<Link href="/login" onClick={() => setOpen(false)} />}>
                   {t.nav.login}
                 </Button>
-                <Button render={<Link href="/register" onClick={() => setOpen(false)} />}>
+                <Button nativeButton={false} render={<Link href="/register" onClick={() => setOpen(false)} />}>
                   {t.nav.register}
                 </Button>
               </div>

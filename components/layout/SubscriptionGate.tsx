@@ -7,6 +7,7 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { createClient } from '@/lib/supabase/client';
 import { useClient } from '@/components/providers/ClientProvider';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import type { SubscriptionStatus } from '@/lib/types';
 
 interface Props {
@@ -17,13 +18,17 @@ interface Props {
 const configs = {
   pending_approval: {
     ar: {
-      title: 'في انتظار الموافقة',
-      desc: 'حسابك قيد المراجعة. سيتواصل معك فريقنا خلال 24 ساعة لتفعيل خدماتك.',
+      title: 'مرحباً بك في TwentyFour',
+      subtitle: 'يتم الآن إعداد حسابك',
+      desc: 'شكراً لتسجيلك! نراجع نشاطك التجاري بشكل شخصي حتى نوصي بأفضل مسارات الأتمتة المناسبة لك. سنراسلك على واتساب خلال 24 ساعة.',
+      secondary: 'هل تريد تجاوز الانتظار؟ راسلنا الآن وسنقوم بإعدادك اليوم.',
       action: 'تواصل معنا على واتساب',
     },
     en: {
-      title: 'Pending Approval',
-      desc: 'Your account is under review. Our team will contact you within 24 hours to activate your services.',
+      title: 'Welcome to TwentyFour',
+      subtitle: 'Your account is being set up',
+      desc: "Thanks for signing up! We're personally reviewing your business so we can recommend the right automation workflows. You'll hear from us on WhatsApp within 24 hours.",
+      secondary: "Want to skip the wait? Message us now and we'll get you set up today.",
       action: 'Contact Us on WhatsApp',
     },
     icon: Clock,
@@ -130,48 +135,53 @@ export function SubscriptionGate({ rejectionReason, children }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(10,15,30,0.97)', backdropFilter: 'blur(12px)' }}
-    >
-      <div className="glass-card p-8 max-w-md w-full text-center space-y-6">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Icon className="size-7" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight mb-3" style={{ color: 'var(--primary)' }}>
-            {text.title}
-          </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
-            {text.desc}
-          </p>
-          {status === 'rejected' && rejectionReason ? (
-            <p className="mt-2 text-sm leading-relaxed text-destructive">
-              {rejectionReason}
+    <div className="min-h-[calc(100vh-6rem)] bg-background py-10">
+      <Card className="mx-auto w-full max-w-md rounded-xl border bg-card text-card-foreground shadow-sm">
+        <CardContent className="space-y-6 p-8 text-center">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 dark:bg-amber-950/30">
+            <Icon className="size-7" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-2xl font-semibold tracking-tight text-amber-600 dark:text-amber-500">
+              {text.title}
+            </h2>
+            {status === 'pending_approval' && 'subtitle' in text ? (
+              <p className="mb-3 text-sm text-muted-foreground">{text.subtitle}</p>
+            ) : null}
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {text.desc}
             </p>
-          ) : null}
-        </div>
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-gold w-full justify-center text-sm"
-        >
-          <MessageCircle size={18} />
-          {text.action}
-        </a>
-        <div className="flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-muted-foreground hover:text-foreground"
+            {status === 'pending_approval' && 'secondary' in text ? (
+              <p className="mt-3 text-sm text-muted-foreground">{text.secondary}</p>
+            ) : null}
+            {status === 'rejected' && rejectionReason ? (
+              <p className="mt-2 text-sm leading-relaxed text-destructive">
+                {rejectionReason}
+              </p>
+            ) : null}
+          </div>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-gold w-full justify-center text-sm"
           >
-            <LogOut size={14} />
-            {lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
-          </Button>
-        </div>
-      </div>
+            <MessageCircle size={18} />
+            {text.action}
+          </a>
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut size={14} />
+              {lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
