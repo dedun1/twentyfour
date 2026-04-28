@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Calendar as CalendarIcon, Clock, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Clock, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/providers/LanguageProvider';
@@ -19,7 +19,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -27,11 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { RequireFeature } from '@/components/guards/RequireFeature';
+import { useClient } from '@/components/providers/ClientProvider';
 import type { Appointment } from '@/lib/types';
 
 function validateEgyptianPhone(phone: string) {
@@ -49,11 +48,16 @@ export default function AppointmentsPage() {
   const { lang } = useLanguage();
   const t = useT(lang);
   const ta = t.appointments;
+  const { clientId } = useClient();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Appointment | null>(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | Appointment['status']>('all');
+  const [datePreset, setDatePreset] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [form, setForm] = useState({
     client_name: '',
     client_phone: '',
@@ -68,19 +72,26 @@ export default function AppointmentsPage() {
 
   const load = async () => {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!clientId) {
+      setAppointments([]);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from('appointments')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('client_id', clientId)
       .order('date', { ascending: false })
       .order('time', { ascending: true });
-    setAppointments(data || []);
+    setAppointments(((data || []) as Appointment[]).map((row) => ({
+      ...row,
+      client_name: row.client_name ?? (row as Appointment & { customer_name?: string }).customer_name ?? '',
+      client_phone: row.client_phone ?? (row as Appointment & { customer_phone?: string }).customer_phone ?? undefined,
+    })));
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [clientId]);
 
   useEffect(() => {
     if (editTarget) {
@@ -97,16 +108,29 @@ export default function AppointmentsPage() {
     }
   }, [editTarget]);
 
-  const filterRows = (todayOnly: boolean) =>
-    appointments.filter((a) => {
-      const matchTab = !todayOnly || a.date === today;
-      const matchSearch = !search ||
-        a.client_name.toLowerCase().includes(search.toLowerCase()) ||
-        a.service.toLowerCase().includes(search.toLowerCase());
-      return matchTab && matchSearch;
-    });
+  const filteredRows = appointments.filter((a) => {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    const monthStart = `${today.slice(0, 7)}-01`;
 
-  const todayCount = appointments.filter((a) => a.date === today).length;
+    const matchSearch = !search ||
+      a.client_name.toLowerCase().includes(search.toLowerCase()) ||
+      a.service.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || a.status === statusFilter;
+    const matchPreset =
+      datePreset === 'all' ||
+      (datePreset === 'today' && a.date === today) ||
+      (datePreset === 'week' && a.date >= weekStartStr && a.date <= weekEndStr) ||
+      (datePreset === 'month' && a.date >= monthStart && a.date <= today);
+    const matchFrom = !fromDate || a.date >= fromDate;
+    const matchTo = !toDate || a.date <= toDate;
+    return matchSearch && matchStatus && matchPreset && matchFrom && matchTo;
+  });
 
   const resetAndClose = () => {
     setOpen(false);
@@ -140,7 +164,11 @@ export default function AppointmentsPage() {
       await supabase.from('appointments').update(payload).eq('id', editTarget.id);
       toast.success(ta.updateSuccess);
     } else {
-      await supabase.from('appointments').insert({ ...payload, user_id: user.id });
+      await supabase.from('appointments').insert({
+        ...payload,
+        user_id: user.id,
+        ...(clientId ? { client_id: clientId } : {}),
+      });
       toast.success(ta.addSuccess);
     }
     resetAndClose();
@@ -292,24 +320,47 @@ export default function AppointmentsPage() {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="today">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList>
-            <TabsTrigger value="today">
-              <CalendarIcon className="me-1.5 size-3.5" />
-              {ta.todayTab}
-              {todayCount > 0 && <Badge className="ms-2">{todayCount}</Badge>}
-            </TabsTrigger>
-            <TabsTrigger value="all">{ta.allTab}</TabsTrigger>
-          </TabsList>
-          <div className="relative w-full max-w-xs">
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {([
+            ['all', 'All Time'],
+            ['today', 'Today'],
+            ['week', 'This Week'],
+            ['month', 'This Month'],
+          ] as Array<['all' | 'today' | 'week' | 'month', string]>).map(([preset, label]) => (
+            <Button
+              key={preset}
+              type="button"
+              variant="outline"
+              className={datePreset === preset ? 'border-amber-500 bg-amber-500/10 text-amber-500' : ''}
+              onClick={() => setDatePreset(preset)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="relative md:col-span-2">
             <Search className="absolute inset-y-0 start-3 my-auto size-4 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={ta.searchPlaceholder} className="ps-9" />
           </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter((v ?? 'all') as 'all' | Appointment['status'])}>
+            <SelectTrigger><SelectValue placeholder={ta.status} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.common.all}</SelectItem>
+              <SelectItem value="pending">{ta.pending}</SelectItem>
+              <SelectItem value="confirmed">{ta.confirmed}</SelectItem>
+              <SelectItem value="cancelled">{ta.cancelled}</SelectItem>
+              <SelectItem value="completed">{ta.completed}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          </div>
         </div>
-        <TabsContent value="today" className="mt-4">{renderTable(filterRows(true))}</TabsContent>
-        <TabsContent value="all" className="mt-4">{renderTable(filterRows(false))}</TabsContent>
-      </Tabs>
+        {renderTable(filteredRows)}
+      </div>
     </div>
     </RequireFeature>
   );

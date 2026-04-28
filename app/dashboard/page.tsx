@@ -13,7 +13,7 @@ import type { Appointment } from '@/lib/types';
 export default function DashboardPage() {
   const { lang } = useLanguage();
   const t = useT(lang);
-  const { features, ownerName, serviceLabel } = useClient();
+  const { features, ownerName, serviceLabel, clientId } = useClient();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -25,19 +25,25 @@ export default function DashboardPage() {
       if (!user) return;
       setUserName(ownerName || user.user_metadata?.full_name || user.email?.split('@')[0] || '');
 
-      if (features.includes('appointments')) {
+      if (features.includes('appointments') && clientId) {
         const { data } = await supabase
           .from('appointments')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('client_id', clientId)
           .order('created_at', { ascending: false })
           .limit(20);
-        setAppointments(data || []);
+        setAppointments(((data || []) as Appointment[]).map((row) => ({
+          ...row,
+          client_name: row.client_name ?? (row as Appointment & { customer_name?: string }).customer_name ?? '',
+          client_phone: row.client_phone ?? (row as Appointment & { customer_phone?: string }).customer_phone ?? undefined,
+        })));
+      } else {
+        setAppointments([]);
       }
       setLoading(false);
     };
     load();
-  }, [features]);
+  }, [clientId, features, ownerName]);
 
   const today = new Date().toISOString().split('T')[0];
   const total = appointments.length;

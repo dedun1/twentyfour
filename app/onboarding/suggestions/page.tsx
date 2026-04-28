@@ -10,36 +10,71 @@ import { useT } from '@/lib/translations';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import type { Suggestion, OnboardingData } from '@/lib/types';
 
-const fallbackSuggestions: Suggestion[] = [
-  {
-    id: '1',
-    title: 'إدارة المواعيد',
-    description: 'ابدأ بإضافة مواعيدك وإدارتها بكفاءة من خلال لوحة التحكم',
-    category: 'مواعيد',
-    icon: 'Calendar',
-  },
-  {
-    id: '2',
-    title: 'المساعد الذكي',
-    description: 'استخدم المساعد الذكي للحصول على إجابات فورية ومساعدة في عملك',
-    category: 'ذكاء اصطناعي',
-    icon: 'MessageSquare',
-  },
-  {
-    id: '3',
-    title: 'إعداد تذكيرات تلقائية',
-    description: 'أنشئ تذكيرات آلية لعملائك قبل مواعيدهم لتقليل حالات الغياب',
-    category: 'تذكيرات',
-    icon: 'Bell',
-  },
-  {
-    id: '4',
-    title: 'تتبع الأداء',
-    description: 'راقب أداء عملك من خلال التقارير المفصلة والرسوم البيانية',
-    category: 'تقارير',
-    icon: 'BarChart2',
-  },
-];
+const getFallbackSuggestions = (lang: 'ar' | 'en'): Suggestion[] => {
+  if (lang === 'ar') {
+    return [
+      {
+        id: '1',
+        title: 'إدارة المواعيد',
+        description: 'أضف مواعيدك وأدرها بالكامل من لوحة التحكم',
+        category: 'مواعيد',
+        icon: 'Calendar',
+      },
+      {
+        id: '2',
+        title: 'المساعد الذكي',
+        description: 'استخدم المساعد الذكي للحصول على إجابات فورية ومساعدة في عملك',
+        category: 'ذكاء اصطناعي',
+        icon: 'MessageSquare',
+      },
+      {
+        id: '3',
+        title: 'إعداد تذكيرات تلقائية',
+        description: 'أنشئ تذكيرات تلقائية لعملائك قبل مواعيدهم',
+        category: 'تذكيرات',
+        icon: 'Bell',
+      },
+      {
+        id: '4',
+        title: 'تتبع الأداء',
+        description: 'راقب أداء عملك عبر تقارير ورسوم بيانية مفصلة',
+        category: 'تقارير',
+        icon: 'BarChart2',
+      },
+    ];
+  }
+
+  return [
+    {
+      id: '1',
+      title: 'Appointment Management',
+      description: 'Add and manage your appointments fully from the dashboard',
+      category: 'Appointments',
+      icon: 'Calendar',
+    },
+    {
+      id: '2',
+      title: 'AI Assistant',
+      description: 'Use the AI assistant for instant answers and help in your business',
+      category: 'AI Assistant',
+      icon: 'MessageSquare',
+    },
+    {
+      id: '3',
+      title: 'Smart Reminders',
+      description: 'Create automatic reminders for your clients before their appointments',
+      category: 'Reminders',
+      icon: 'Bell',
+    },
+    {
+      id: '4',
+      title: 'Performance Tracking',
+      description: 'Monitor your business performance through detailed reports and charts',
+      category: 'Reports',
+      icon: 'BarChart2',
+    },
+  ];
+};
 
 export default function SuggestionsPage() {
   const { lang } = useLanguage();
@@ -52,7 +87,7 @@ export default function SuggestionsPage() {
     const load = async () => {
       const stored = sessionStorage.getItem('onboarding-data');
       if (!stored) {
-        setSuggestions(fallbackSuggestions);
+        setSuggestions(getFallbackSuggestions(lang));
         setLoading(false);
         return;
       }
@@ -71,13 +106,13 @@ export default function SuggestionsPage() {
           if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
             setSuggestions(data.suggestions);
           } else {
-            setSuggestions(fallbackSuggestions);
+            setSuggestions(getFallbackSuggestions(lang));
           }
         } else {
-          setSuggestions(fallbackSuggestions);
+          setSuggestions(getFallbackSuggestions(lang));
         }
       } catch {
-        setSuggestions(fallbackSuggestions);
+        setSuggestions(getFallbackSuggestions(lang));
       }
 
       setLoading(false);
@@ -89,6 +124,8 @@ export default function SuggestionsPage() {
   return (
     <div
       className="min-h-screen"
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      lang={lang}
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, rgba(240,165,0,0.08) 0%, var(--bg) 60%)',
       }}
