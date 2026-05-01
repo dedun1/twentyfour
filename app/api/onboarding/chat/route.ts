@@ -28,6 +28,10 @@ type Recommendation = {
   channel: string;
 };
 
+/** Single client-safe closing line for complete:true API responses. */
+const COMPLETION_CLIENT_MESSAGE =
+  "Thanks for sharing everything. Your personalized plan is being built right now. You'll see it in just a few seconds.";
+
 type ClaudeInterviewResponse =
   | {
       complete: false;
@@ -50,17 +54,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-/** Strip markdown ``` / ```json fences before JSON.parse (handles variants robustly). */
-function stripMarkdownCodeFences(rawText: string): string {
+/** Normalize consultant raw text before JSON.parse (fences + extract outermost object). */
+function prepareTextForJsonParse(rawText: string): string {
   let textToParse = rawText.trim();
-  if (/^```json\b/i.test(textToParse)) {
-    textToParse = textToParse.replace(/^```json\s*/i, '');
-  }
-  if (textToParse.startsWith('```')) {
-    textToParse = textToParse.slice(3);
-  }
-  if (textToParse.endsWith('```')) {
-    textToParse = textToParse.slice(0, -3);
+  if (textToParse.startsWith('```json')) textToParse = textToParse.slice(7);
+  if (textToParse.startsWith('```')) textToParse = textToParse.slice(3);
+  if (textToParse.endsWith('```')) textToParse = textToParse.slice(0, -3);
+  textToParse = textToParse.trim();
+  if (!textToParse.startsWith('{')) {
+    const first = textToParse.indexOf('{');
+    const last = textToParse.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      textToParse = textToParse.substring(first, last + 1);
+    }
   }
   return textToParse.trim();
 }
@@ -816,7 +822,7 @@ async function callClaude(messages: TranscriptEntry[], system: string): Promise<
 }
 
 function parseClaudeResponse(text: string): ClaudeInterviewResponse {
-  const cleanedText = stripMarkdownCodeFences(text);
+  const cleanedText = prepareTextForJsonParse(text);
 
   let parsed: unknown;
 
@@ -885,7 +891,7 @@ function parseClaudeResponse(text: string): ClaudeInterviewResponse {
 }
 
 function extractJSON(text: string): any {
-  let cleaned = stripMarkdownCodeFences(text);
+  let cleaned = prepareTextForJsonParse(text);
 
   if (cleaned.startsWith('{')) {
     try {
@@ -936,6 +942,108 @@ function extractJSON(text: string): any {
     next_question: cleaned,
     capture: {},
   };
+}
+
+type SessionRowForLayer2 = {
+  id: string;
+  captured_email: string | null;
+  captured_phone: string | null;
+  captured_business_name: string | null;
+  captured_budget_range: string | null;
+  business_summary: string | null;
+  monthly_revenue_at_risk: number | null;
+};
+
+/**
+ * LAYER 2: Raw model text indicates complete:true but JSON was not parsed as a complete object.
+ * Persists session using Haiku captured_facts fallback + triggers pipeline.
+ */
+async function tryFinalizeWhenRawCompleteTrueUnparsed(
+  extractedText: string,
+  parsed: Record<string, unknown>,
+  transcriptAfterUser: TranscriptEntry[],
+  sessionRow: SessionRowForLayer2,
+  supabaseAdmin: ReturnType<typeof createAdminClient>
+): Promise<NextResponse | null> {
+  if (parsed.complete === true) return null;
+  if (!/"complete"\s*:\s*true/.test(extractedText)) return null;
+
+  console.log('[COMPLETION] Force-detected complete:true from unparseable response');
+
+  const email = String(sessionRow.captured_email || '').trim();
+  const phone = String(sessionRow.captured_phone || '').trim();
+  if (!email || email === 'not_provided' || !phone || phone === 'not_provided') {
+    return NextResponse.json({
+      complete: false,
+      next_question: "Before I build your plan, I need your email and phone number so we can reach you with the results. What's the best email and number?",
+      show_generate_button: false,
+      session_id: sessionRow.id,
+    });
+  }
+
+  const assistantMessage: TranscriptEntry = {
+    role: 'assistant',
+    content: COMPLETION_CLIENT_MESSAGE,
+    created_at: new Date().toISOString(),
+  };
+  const completeTranscript = [...transcriptAfterUser, assistantMessage] as TranscriptEntry[];
+
+  const capturedFacts = await extractCapturedFactsFromTranscript(
+    completeTranscript.map((entry) => ({ role: entry.role, content: entry.content }))
+  );
+
+  const budgetRaw = sessionRow.captured_budget_range;
+  const budget_range: ConsultantOutput['raw_data']['budget_range'] =
+    budgetRaw === 'under_300' || budgetRaw === '300_to_1000' || budgetRaw === '1000_plus' || budgetRaw === 'not_sure'
+      ? budgetRaw
+      : 'not_sure';
+
+  const consultantOutput: ConsultantOutput = {
+    business_summary: String(sessionRow.business_summary || ''),
+    contact: {
+      name: String(sessionRow.captured_business_name || ''),
+      email,
+      phone,
+      business_name: String(sessionRow.captured_business_name || ''),
+    },
+    raw_data: { budget_range },
+    captured_facts: capturedFacts ?? undefined,
+    transcript: completeTranscript.map((entry) => ({ role: entry.role, content: entry.content })),
+  };
+
+  const { error: updateError } = await supabaseAdmin
+    .from('onboarding_sessions')
+    .update({
+      business_summary: consultantOutput.business_summary,
+      captured_email: email,
+      captured_phone: phone,
+      captured_business_name: sessionRow.captured_business_name,
+      captured_budget_range: budget_range,
+      monthly_revenue_at_risk: Math.max(1, Math.round(Number(sessionRow.monthly_revenue_at_risk ?? 1))),
+      captured_facts: capturedFacts ?? null,
+      status: 'completed',
+      pipeline_status: 'running',
+      recommendations: [] as Recommendation[],
+      transcript: completeTranscript,
+      completed_at: new Date().toISOString(),
+      conversation_stage: 'close',
+      country: 'usa',
+    })
+    .eq('id', sessionRow.id);
+
+  if (updateError) {
+    console.error('[COMPLETION] Layer2 DB error:', updateError);
+  }
+
+  runPipeline(sessionRow.id, consultantOutput).catch((err) => {
+    console.error('[COMPLETION] Layer2 pipeline failed:', (err as Error)?.message || err);
+  });
+
+  return NextResponse.json({
+    complete: true,
+    next_question: COMPLETION_CLIENT_MESSAGE,
+    session_id: sessionRow.id,
+  });
 }
 
 function getClientIp(request: Request): string {
@@ -1353,7 +1461,7 @@ export async function POST(request: Request) {
 
       const forceAssistantMessage: TranscriptEntry = {
         role: 'assistant',
-        content: 'Thanks for sharing everything. Your personalized plan is being built right now. You will see it in just a few seconds.',
+        content: COMPLETION_CLIENT_MESSAGE,
         created_at: new Date().toISOString(),
       };
       const persistedTranscript: TranscriptEntry[] = [
@@ -1393,7 +1501,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         complete: true,
-        next_question: "I have everything I need. Building your custom plan now. You'll see it in just a few seconds.",
+        next_question: COMPLETION_CLIENT_MESSAGE,
         session_id: sessionRow.id,
       });
     }
@@ -1476,6 +1584,15 @@ Message count: ${messagesForClaude.length}`;
     }
     console.log('[DEBUG] Final parsed.complete:', parsed.complete);
     console.log('[DEBUG] Complete check:', parsed.complete === true, 'or string:', parsed.complete === 'true');
+
+    const layer2Response = await tryFinalizeWhenRawCompleteTrueUnparsed(
+      extractedText,
+      parsed,
+      transcriptAfterUser,
+      sessionRow,
+      supabaseAdmin,
+    );
+    if (layer2Response) return layer2Response;
 
     if (parsed.complete === false && typeof parsed.next_question === 'string') {
       const text = parsed.next_question.toLowerCase();
@@ -1587,7 +1704,6 @@ Output ONLY the JSON. No text before or after.`,
     console.log('[DEBUG] INSIDE COMPLETE BLOCK');
     if (parsed.complete === true) {
       console.log('[COMPLETION] Detected complete=true, processing...');
-      const closingMessage = "I have everything I need. Building your custom plan now. You'll see it in just a few seconds.";
       const parsedCapture = isRecord(parsed.capture) ? parsed.capture as Record<string, any> : {};
       const email = String(parsedCapture.email || sessionRow?.captured_email || '').trim();
       const phone = String(parsedCapture.phone || sessionRow?.captured_phone || '').trim();
@@ -1601,7 +1717,7 @@ Output ONLY the JSON. No text before or after.`,
       }
       const assistantMessage: TranscriptEntry = {
         role: 'assistant',
-        content: closingMessage,
+        content: COMPLETION_CLIENT_MESSAGE,
         created_at: new Date().toISOString(),
       };
       const completeTranscript = [...transcriptAfterUser, assistantMessage] as TranscriptEntry[];
@@ -1666,7 +1782,7 @@ Output ONLY the JSON. No text before or after.`,
       console.log('[COMPLETION] Returning redirect response');
       return NextResponse.json({
         complete: true,
-        next_question: closingMessage,
+        next_question: COMPLETION_CLIENT_MESSAGE,
         session_id: sessionRow.id,
       });
     }

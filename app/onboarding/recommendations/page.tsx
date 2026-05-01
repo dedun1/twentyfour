@@ -101,7 +101,7 @@ export default async function OnboardingRecommendationsPage({
 }) {
   const sp = await searchParams;
   const sessionId = sp.session;
-  if (!sessionId) redirect('/onboarding');
+  if (!sessionId) redirect('/get-started');
 
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -116,16 +116,16 @@ export default async function OnboardingRecommendationsPage({
     .eq('id', sessionId)
     .maybeSingle();
 
-  if (error || !data) redirect('/onboarding');
+  if (error || !data) redirect('/get-started');
   const session = data as SessionRow;
 
-  if (!user && cookieSessionId !== sessionId) redirect('/onboarding');
+  if (!user && cookieSessionId !== sessionId) redirect('/get-started');
   if (user && session.user_id && session.user_id !== user.id) {
     const { data: roleRow } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();
-    if (roleRow?.role !== 'admin') redirect('/onboarding');
+    if (roleRow?.role !== 'admin') redirect('/get-started');
   }
 
-  if (session.status !== 'completed') redirect('/onboarding');
+  if (session.status !== 'completed') redirect('/get-started');
 
   const pipelineStatus = session.pipeline_status ?? (session.recommendations?.length ? 'complete' : 'pending');
   if (pipelineStatus === 'pending' || pipelineStatus === 'running') {
@@ -592,7 +592,7 @@ export default async function OnboardingRecommendationsPage({
           </CardContent>
         </Card>
         <p className="text-center text-sm text-muted-foreground">
-          Want to start over? <Link href="/onboarding" className="underline">Try a different angle →</Link>
+          Want to start over? <Link href="/get-started" className="underline">Try a different angle →</Link>
         </p>
       </section>
 

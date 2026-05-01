@@ -31,8 +31,7 @@ export async function proxy(request: NextRequest) {
 
   const isProtected =
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/onboarding');
+    pathname.startsWith('/admin');
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
 

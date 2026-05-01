@@ -6,7 +6,7 @@ export default async function SuggestionsPage({
   searchParams: { session?: string };
 }) {
   const sessionId = searchParams.session;
-  if (!sessionId) redirect('/onboarding');
-  redirect(`/onboarding/recommendations?session=${encodeURIComponent(sessionId)}`);
+  if (!sessionId) redirect('/get-started');
+  redirect(`/get-started/recommendations?session=${encodeURIComponent(sessionId)}`);
 }
 

@@ -9,6 +9,11 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  clearStoredConsultationSessionId,
+  writeStoredConsultationSessionId,
+  readStoredConsultationSessionId,
+} from '@/lib/consultation-storage';
 
 type ChatSender = 'user' | 'ai';
 type TranscriptEntry = { role: 'user' | 'assistant'; content: string; created_at?: string };
@@ -54,9 +59,9 @@ type SessionListItem = {
 
 interface ConsultationChatProps {
   onComplete: (payload: ApiCompleteResponse) => void;
-  mode: 'authenticated' | 'anonymous';
+  /** Same UI for everyone; backend uses auth vs cookie session. */
+  isAuthenticated: boolean;
   initialSessionId?: string | null;
-  country?: 'egypt' | 'usa' | null;
 }
 
 function formatDateShort(input: string) {
@@ -69,9 +74,22 @@ function statusClass(status: SessionListItem['status']) {
   return 'bg-zinc-500/15 text-zinc-400';
 }
 
+const DEFAULT_CLOSING =
+  "Thanks for sharing everything. Your personalized plan is being built right now. You'll see it in just a few seconds.";
+
+const RECOMMENDATIONS_PUBLIC_PATH = '/get-started/recommendations';
+
 function sanitizeAIMessage(content: string): string {
+  if (!content) return 'Building your plan now...';
   const trimmed = content.trim();
-  if (trimmed.startsWith('{') || trimmed.startsWith('```')) {
+
+  if (
+    trimmed.startsWith('{') ||
+    trimmed.startsWith('```') ||
+    trimmed.includes('"complete"') ||
+    trimmed.includes('"captured_facts"') ||
+    trimmed.includes('"business_summary"')
+  ) {
     try {
       const cleaned = trimmed
         .replace(/^```json\s*/i, '')
@@ -85,20 +103,22 @@ function sanitizeAIMessage(content: string): string {
     } catch {
       // Not valid JSON, continue
     }
+    const match = trimmed.match(/"next_question"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (match) return match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+    return DEFAULT_CLOSING;
   }
   return content;
 }
 
 function sanitizeCompleteMessage(message: string | undefined): string {
-  const raw = String(message || '').trim();
+  const raw = sanitizeAIMessage(String(message || '')).trim();
   const looksJsonLike =
     raw.includes('"complete"') ||
     raw.includes('"capture"') ||
     raw.includes('"business_summary"') ||
-    raw.includes('{') ||
-    raw.includes('}');
+    (raw.includes('{') && raw.includes('}'));
   if (!raw || looksJsonLike) {
-    return 'I have everything I need. Building your custom plan now.';
+    return DEFAULT_CLOSING;
   }
   return raw;
 }
@@ -109,7 +129,7 @@ function aiReplyFromApi(data: { next_question?: string; message?: string }, apiC
   return apiComplete ? sanitizeCompleteMessage(extracted) : extracted;
 }
 
-export function ConsultationChat({ onComplete, mode, initialSessionId = null }: ConsultationChatProps) {
+export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId = null }: ConsultationChatProps) {
   const { lang } = useLanguage();
   const placeholders = useMemo(
     () => (lang === 'ar'
@@ -145,6 +165,22 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
   /** After "New chat", parent may still pass initialSessionId; still run opening fetch once. */
   const skipResumePropRef = useRef(false);
 
+  const recommendationsBase = RECOMMENDATIONS_PUBLIC_PATH;
+
+  const [anonLastSessionId, setAnonLastSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) setAnonLastSessionId(readStoredConsultationSessionId());
+    else setAnonLastSessionId(null);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated && sessionId) {
+      writeStoredConsultationSessionId(sessionId);
+      setAnonLastSessionId(sessionId);
+    }
+  }, [isAuthenticated, sessionId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
@@ -157,7 +193,7 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
   }, [placeholders.length]);
 
   const loadSessionHistory = async () => {
-    if (mode !== 'authenticated') return;
+    if (!isAuthenticated) return;
     const res = await fetch('/api/onboarding/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,7 +248,11 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
     startedRef.current = false;
     openingInitRef.current = false;
     setStartSeed((s) => s + 1);
-    if (mode === 'anonymous') setAnonHasUnfinished(false);
+    if (!isAuthenticated) {
+      setAnonHasUnfinished(false);
+      clearStoredConsultationSessionId();
+      setAnonLastSessionId(null);
+    }
     await loadSessionHistory();
   };
 
@@ -242,7 +282,7 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
 
   useEffect(() => {
     void loadSessionHistory();
-    if (mode === 'anonymous') {
+    if (!isAuthenticated) {
       void (async () => {
         const res = await fetch('/api/onboarding/chat', {
           method: 'POST',
@@ -255,7 +295,7 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!initialSessionId || initialLoadRef.current) return;
@@ -291,11 +331,10 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
         if (responseSessionId) setSessionId(responseSessionId);
         // CHECK COMPLETE FIRST — before any message rendering
         if (data.complete) {
-          const safeMessage = aiReplyFromApi(data as ApiCompleteResponse, true);
-          setMessages((prev) => [...prev, {
-            sender: 'ai',
-            content: safeMessage,
-          }]);
+          const cleanMessage = sanitizeCompleteMessage(
+            sanitizeAIMessage((data as ApiCompleteResponse).next_question || DEFAULT_CLOSING),
+          );
+          setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
           setIsComplete(true);
           setCurrentStatus('completed');
           setIsLoading(true);
@@ -307,8 +346,9 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
             sessionId: redirectSessionId || '',
           };
           window.setTimeout(() => {
-            if (redirectSessionId) {
-              window.location.href = '/onboarding/recommendations?session=' + encodeURIComponent(redirectSessionId);
+            const sid = redirectSessionId || '';
+            if (sid) {
+              window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
             }
           }, 3000);
           onComplete(normalizedComplete);
@@ -351,11 +391,10 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
 
       // CHECK COMPLETE FIRST — before any message rendering
       if (data.complete) {
-        const safeMessage = aiReplyFromApi(data as ApiCompleteResponse, true);
-        setMessages((prev) => [...prev, {
-          sender: 'ai',
-          content: safeMessage,
-        }]);
+        const cleanMessage = sanitizeCompleteMessage(
+          sanitizeAIMessage((data as ApiCompleteResponse).next_question || DEFAULT_CLOSING),
+        );
+        setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
         setIsComplete(true);
         setCurrentStatus('completed');
         setIsLoading(true);
@@ -367,8 +406,9 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
           sessionId: redirectSessionId || '',
         };
         window.setTimeout(() => {
-          if (redirectSessionId) {
-            window.location.href = '/onboarding/recommendations?session=' + encodeURIComponent(redirectSessionId);
+          const sid = redirectSessionId || '';
+          if (sid) {
+            window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
           }
         }, 3000);
         onComplete(normalizedComplete);
@@ -418,17 +458,19 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
       const data = await res.json();
 
       if (data.complete === true) {
-        const safeMessage = aiReplyFromApi(data as ApiCompleteResponse, true);
-        setMessages((prev) => [...prev, {
-          sender: 'ai',
-          content: safeMessage,
-        }]);
+        const cleanMessage = sanitizeCompleteMessage(
+          sanitizeAIMessage(String((data as ApiCompleteResponse).next_question || DEFAULT_CLOSING)),
+        );
+        setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
         setIsComplete(true);
         setCurrentStatus('completed');
         setIsBuilding(true);
         setReadyBannerSessionId(data.session_id || sessionId);
         window.setTimeout(() => {
-          window.location.href = '/onboarding/recommendations?session=' + encodeURIComponent(data.session_id || sessionId);
+          const sid = data.session_id || sessionId || '';
+          if (sid) {
+            window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
+          }
         }, 3000);
       }
     } catch (err) {
@@ -439,7 +481,6 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
     }
   };
 
-  const recommendationsBase = mode === 'authenticated' ? '/onboarding/recommendations' : '/get-started/recommendations';
   const assistantCount = messages.filter((m) => m.sender === 'ai').length;
   const progressHint = assistantCount <= 2
     ? (lang === 'ar' ? 'بدأنا للتو - أخبرني عن عملك' : 'Just getting started - tell me about your business')
@@ -460,7 +501,7 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
       <div className="max-w-2xl mx-auto space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {mode === 'authenticated' ? (
+            {isAuthenticated ? (
               <Button type="button" variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)}>
                 <History className="size-4 me-1" />
                 {lang === 'ar' ? 'السجل' : 'History'}
@@ -484,7 +525,18 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
           </div>
         ) : null}
 
-        {mode === 'anonymous' && anonHasUnfinished ? (
+        {!isAuthenticated && anonLastSessionId ? (
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+            <Link
+              href={`${recommendationsBase}?session=${encodeURIComponent(anonLastSessionId)}`}
+              className="underline font-medium text-foreground"
+            >
+              {lang === 'ar' ? 'عرض خطتك السابقة →' : 'View your last plan →'}
+            </Link>
+          </div>
+        ) : null}
+
+        {!isAuthenticated && anonHasUnfinished ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
             {lang === 'ar' ? 'لديك استشارة غير مكتملة.' : 'You have an unfinished consultation.'}{' '}
             <button className="underline" onClick={() => setAnonHasUnfinished(false)}>{lang === 'ar' ? 'متابعة' : 'Continue'}</button>{' '}
@@ -493,7 +545,7 @@ export function ConsultationChat({ onComplete, mode, initialSessionId = null }: 
           </div>
         ) : null}
 
-        {mode === 'authenticated' ? (
+        {isAuthenticated ? (
           <aside className={`${showHistory ? 'block' : 'hidden'} rounded-xl border border-border bg-card p-3 max-h-[220px] overflow-y-auto`}>
             <p className="text-sm font-semibold mb-2">{lang === 'ar' ? 'جلسات سابقة' : 'Past sessions'}</p>
             <div className="space-y-2">

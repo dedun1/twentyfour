@@ -95,7 +95,7 @@ function RegisterPageInner() {
       }
     }
 
-    router.push('/onboarding');
+    router.push('/get-started');
   };
 
   return (
