@@ -40,7 +40,8 @@ const translations = {
     nav: {
       home: 'الرئيسية',
       about: 'من نحن',
-      contact: 'تواصل معنا',
+      contact: 'ابدأ الآن',
+      pricing: 'الأسعار',
       login: 'تسجيل الدخول',
       register: 'إنشاء حساب',
       logout: 'تسجيل الخروج',
@@ -384,7 +385,7 @@ const translations = {
         title: 'أتمت شغلتك. وفّر وقتك.',
         titleHighlight: 'اكسب أكتر.',
         subtitle: 'بنبني أنظمة أتمتة مخصصة لشغلتك تشيل عنك الشغل اليدوي. من التواصل مع العملاء للحجوزات والمدفوعات والمتابعة، فريقك يركز على النمو والنظام بيشتغل الباقي.',
-        cta: 'احجز استشارة مجانية',
+        cta: 'احصل على توصيات مجانية',
         ctaSecondary: 'شوف إزاي بيشتغل',
       },
       features: {
@@ -429,14 +430,14 @@ const translations = {
         role: 'صاحبة بيزنس، القاهرة',
       },
       cta: {
-        title: 'بطّل شغل يدوي. وابدأ تنمو.',
-        subtitle: 'احجز استشارة مجانية واحنا نشوف مع بعض إزاي نتعاون',
-        button: 'احجز استشارة مجانية',
+        title: 'مستعد تشوف إيه اللي ممكن نأتمته في عملك؟',
+        subtitle: '5 دقايق مع مستشار الـ AI بتاعنا. هتطلع بخطة أتمتة مخصصة.',
+        button: 'احصل على توصيات مجانية',
       },
       trustBadges: {
         b1: '24/7 شغّال دايماً',
         b2: 'مبني خصيصاً لك',
-        b3: 'الإعداد في 48 ساعة',
+        b3: 'شغّال خلال أسابيع، مش شهور',
       },
     },
     about: {
@@ -457,7 +458,7 @@ const translations = {
       v4desc: 'لما أعمالكم تنمو، إحنا بننمو معاها',
     },
     contact: {
-      title: 'احجز استشارة مجانية',
+      title: 'احصل على توصيات مجانية',
       subtitle: 'احكي لنا عن شغلتك. هنحلل عملياتك ونوريك إيه اللي ممكن نأتمته عشان توفر وقت وتزيد إيراداتك.',
       sectionBasic: 'البيانات الأساسية',
       sectionBusiness: 'عن شغلتك',
@@ -553,7 +554,7 @@ const translations = {
       hours: 'الأحد - الخميس: 9 صباحاً - 6 مساءً',
     },
     footer: {
-      description: 'أتمتة مخصصة للأعمال المصرية',
+      description: 'أتمتة مخصصة للأعمال النامية',
       quickLinks: 'روابط سريعة',
       legal: 'قانوني',
       terms: 'شروط الخدمة',
@@ -600,7 +601,8 @@ const translations = {
     nav: {
       home: 'Home',
       about: 'About',
-      contact: 'Contact',
+      contact: 'Get Started',
+      pricing: 'Pricing',
       login: 'Login',
       register: 'Register',
       logout: 'Logout',
@@ -944,7 +946,7 @@ const translations = {
         title: 'Automate Your Business. Save Time.',
         titleHighlight: 'Make More.',
         subtitle: 'We build custom automation workflows that replace manual work in your business. From customer messaging to bookings, payments, and follow-ups, your team focuses on growth while the system handles the repetitive work.',
-        cta: 'Book a Free Demo',
+        cta: 'Get Free Recommendations',
         ctaSecondary: 'See How It Works',
       },
       features: {
@@ -991,12 +993,12 @@ const translations = {
       cta: {
         title: 'Stop doing manual work. Start growing.',
         subtitle: 'Book a free demo and we will show you exactly what we can automate for you.',
-        button: 'Book Free Demo',
+        button: 'Get Free Recommendations',
       },
       trustBadges: {
         b1: '24/7 Always On',
         b2: 'Custom Built For You',
-        b3: 'Setup in 48 Hours',
+        b3: 'Live in weeks, not months',
       },
     },
     about: {
@@ -1017,7 +1019,7 @@ const translations = {
       v4desc: 'When your business grows, we grow with it.',
     },
     contact: {
-      title: 'Book a Free Demo',
+      title: 'Get Free Recommendations',
       subtitle: 'Tell us about your business. We will analyze your operations and show you what can be automated to save time and grow revenue.',
       sectionBasic: 'Basic Info',
       sectionBusiness: 'Your Business',
@@ -1102,7 +1104,7 @@ const translations = {
         ad: 'Advertisement',
         other: 'Other',
       },
-      send: 'Send & Book My Free Demo',
+      send: 'Send & Get Free Recommendations',
       sending: 'Sending...',
       successTitle: 'Thank you! We received your details.',
       successBody: 'We will analyze your business and contact you on WhatsApp within 24 hours with specific automation suggestions for your operation.',
@@ -1113,7 +1115,7 @@ const translations = {
       hours: 'Sunday - Thursday: 9 AM - 6 PM',
     },
     footer: {
-      description: 'Custom automation for Egyptian businesses',
+      description: 'Custom automation for growing businesses',
       quickLinks: 'Quick Links',
       legal: 'Legal',
       terms: 'Terms of Service',

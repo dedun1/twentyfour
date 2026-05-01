@@ -45,6 +45,7 @@ import { ClientStatsTab } from '@/app/admin/components/ClientStatsTab';
 import { DashboardControlTab } from '@/app/admin/components/DashboardControlTab';
 import { AdminsTab } from '@/app/admin/components/AdminsTab';
 import { TwentyFourAppointmentsTab } from '@/app/admin/components/TwentyFourAppointmentsTab';
+import { OnboardingSubmissionsTab } from '@/app/admin/components/OnboardingSubmissionsTab';
 import { EmptyState } from '@/app/admin/components/EmptyState';
 import type {
   AppointmentStatus,
@@ -69,6 +70,7 @@ type TabKey =
   | 'scripts'
   | 'reminders'
   | 'contacts'
+  | 'onboarding-submissions'
   | 'twentyfour-stats'
   | 'client-stats'
   | 'dashboard-control';
@@ -310,6 +312,7 @@ export default function AdminPage() {
     scriptsLibrary: lang === 'ar' ? 'مكتبة السكريبتات' : 'Scripts Library',
     reminders: lang === 'ar' ? 'التذكيرات' : 'Reminders',
     contactRequests: lang === 'ar' ? 'طلبات التواصل' : 'Contact Requests',
+    onboardingSubmissions: lang === 'ar' ? 'مشاركات الاستشارة' : 'Onboarding Submissions',
     addNewClient: lang === 'ar' ? 'إضافة عميل جديد' : 'Add New Client',
     searchClients: lang === 'ar' ? 'ابحث عن العملاء...' : 'Search clients...',
     appointmentsCount: lang === 'ar' ? 'موعد' : 'appointments',
@@ -1401,6 +1404,7 @@ export default function AdminPage() {
         { key: 'scripts', label: ui.scriptsLibrary, icon: FileText },
         { key: 'reminders', label: ui.reminders, icon: Bell },
         { key: 'contacts', label: ui.contactRequests, icon: Mail },
+            { key: 'onboarding-submissions', label: ui.onboardingSubmissions, icon: FileText },
       ],
     },
     {
@@ -2009,6 +2013,10 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="onboarding-submissions" className="space-y-4">
+          <OnboardingSubmissionsTab onRefresh={load} />
         </TabsContent>
 
         <TabsContent value="twentyfour-stats" className="space-y-4">

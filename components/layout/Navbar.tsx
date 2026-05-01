@@ -27,7 +27,8 @@ export function Navbar() {
   const links = [
     { href: '/', label: t.nav.home },
     { href: '/about', label: t.nav.about },
-    { href: '/contact', label: t.nav.contact },
+    { href: '/pricing', label: t.nav.pricing },
+    { href: '/get-started', label: t.nav.contact },
   ];
 
   return (

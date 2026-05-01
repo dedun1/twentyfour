@@ -13,40 +13,29 @@ export function ChatBubble({ sender, content, isTyping }: ChatBubbleProps) {
   const isAI = sender === 'ai';
 
   return (
-    <div className={cn('flex gap-3 animate-fade-in', !isAI && 'flex-row-reverse')}>
-      {/* Avatar */}
+    <div className={cn('flex gap-3 animate-fade-in w-full', !isAI && 'flex-row-reverse')}>
       <div
         className={cn(
           'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
           isAI
             ? 'bg-gradient-to-br from-[#f0a500] to-[#ffd700]'
-            : 'bg-[var(--muted)]'
+            : 'bg-amber-500/20 dark:bg-amber-600/30'
         )}
       >
         {isAI ? (
           <Zap size={16} className="text-[#0a0f1e]" />
         ) : (
-          <User size={16} className="text-[var(--muted-fg)]" />
+          <User size={16} className="text-amber-700 dark:text-amber-200" />
         )}
       </div>
 
-      {/* Bubble */}
       <div
         className={cn(
-          'max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed',
+          'max-w-[75%] px-4 py-2 text-sm leading-relaxed',
           isAI
-            ? 'text-[var(--foreground)]'
-            : 'text-[var(--foreground)]'
+            ? 'text-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50 rounded-[4px_18px_18px_18px]'
+            : 'ml-auto rounded-2xl bg-amber-500 text-white dark:bg-amber-600 dark:text-white'
         )}
-        style={{
-          background: isAI
-            ? 'rgba(240,165,0,0.08)'
-            : 'rgba(31,41,55,0.8)',
-          border: `1px solid ${isAI ? 'rgba(240,165,0,0.15)' : 'rgba(31,41,55,0.8)'}`,
-          borderRadius: isAI
-            ? '4px 18px 18px 18px'
-            : '18px 4px 18px 18px',
-        }}
       >
         {isTyping ? (
           <div className="flex items-center gap-1.5 py-1">

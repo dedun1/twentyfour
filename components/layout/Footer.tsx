@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Zap } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useT } from '@/lib/translations';
+import { SUPPORT_WHATSAPP } from '@/lib/constants';
 
 export function Footer() {
   const { lang } = useLanguage();
@@ -43,7 +44,8 @@ export function Footer() {
               {[
                 { href: '/', label: t.nav.home },
                 { href: '/about', label: t.nav.about },
-                { href: '/contact', label: t.nav.contact },
+                { href: '/pricing', label: t.nav.pricing },
+                { href: '/get-started', label: t.nav.contact },
                 { href: '/login', label: t.nav.login },
               ].map((link) => (
                 <li key={link.href}>
@@ -65,14 +67,14 @@ export function Footer() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <span className="text-sm text-[var(--muted-fg)] cursor-pointer hover:text-[var(--primary)] transition-colors">
+                <Link href="/terms" className="text-sm text-[var(--muted-fg)] hover:text-[var(--primary)] transition-colors">
                   {t.footer.terms}
-                </span>
+                </Link>
               </li>
               <li>
-                <span className="text-sm text-[var(--muted-fg)] cursor-pointer hover:text-[var(--primary)] transition-colors">
+                <Link href="/privacy" className="text-sm text-[var(--muted-fg)] hover:text-[var(--primary)] transition-colors">
                   {t.footer.privacy}
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -89,6 +91,16 @@ export function Footer() {
           <p className="text-xs text-[var(--muted-fg)]">
             Made with ❤️ for businesses
           </p>
+        </div>
+        <div className="mt-3 text-center">
+          <a
+            href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-[var(--muted-fg)] hover:text-[var(--primary)] transition-colors"
+          >
+            WhatsApp: {SUPPORT_WHATSAPP}
+          </a>
         </div>
       </div>
     </footer>

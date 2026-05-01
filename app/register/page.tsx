@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,14 +27,37 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center px-4 py-12">
+          <div className="spinner" style={{ width: 24, height: 24 }} />
+        </div>
+      }
+    >
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageInner() {
   const { lang } = useLanguage();
   const t = useT(lang);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session');
+  const prefillEmail = searchParams.get('email');
+  const prefillPhone = searchParams.get('phone');
   const [showPw, setShowPw] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    if (prefillEmail) setValue('email', prefillEmail);
+    if (prefillPhone) setValue('phone', prefillPhone);
+  }, [prefillEmail, prefillPhone, setValue]);
 
   const onSubmit = async (data: FormData) => {
     const supabase = createClient();
@@ -56,6 +79,22 @@ export default function RegisterPage() {
     }
 
     toast.success(t.auth.registerSuccess);
+
+    if (sessionId) {
+      try {
+        const res = await fetch('/api/onboarding/link-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) {
+          toast.error(lang === 'ar' ? 'تعذر ربط الاستشارة بالحساب. يمكنك المتابعة.' : 'Could not link your consultation session. You can continue.');
+        }
+      } catch {
+        toast.error(lang === 'ar' ? 'تعذر ربط الاستشارة بالحساب. يمكنك المتابعة.' : 'Could not link your consultation session. You can continue.');
+      }
+    }
+
     router.push('/onboarding');
   };
 
@@ -86,6 +125,13 @@ export default function RegisterPage() {
         </div>
 
         <div className="glass-card p-8">
+          {sessionId ? (
+            <div className="mb-4 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+              {lang === 'ar'
+                ? 'تكملة من استشارتك — لدينا بالفعل معلومات عن عملك.'
+                : 'Continuing from your consultation — we already know about your business.'}
+            </div>
+          ) : null}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.fullName} *</label>
