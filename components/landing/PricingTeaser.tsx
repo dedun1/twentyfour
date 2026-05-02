@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { STARTER_PRICE_USD, CUSTOM_PRICE_USD_MIN } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function PricingTeaser() {
   const { lang } = useLanguage();
@@ -11,8 +12,19 @@ export function PricingTeaser() {
 
   return (
     <section className="py-16 lg:py-20">
+      <ScrollReveal>
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'أسعار شفافة' : 'Transparent pricing'}</h2>
+        <h2 className="text-3xl font-bold text-foreground mb-3">
+          {isAr ? (
+            <>
+              أسعار <span className="text-amber-500">شفافة</span>
+            </>
+          ) : (
+            <>
+              <span className="text-amber-500">Transparent</span> pricing
+            </>
+          )}
+        </h2>
         <p className="text-muted-foreground mb-6">
           {isAr
             ? `تبدأ من ${STARTER_PRICE_USD} دولار/شهر. الأتمتة المخصصة من ${CUSTOM_PRICE_USD_MIN} دولار. بنحدد سعرك بعد الاستشارة المجانية — مش قبل ما نفهم عملك.`
@@ -27,6 +39,7 @@ export function PricingTeaser() {
           </Button>
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

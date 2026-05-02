@@ -109,8 +109,8 @@ export default function ReportsPage() {
     { label: t.reports.completed, value: completed, icon: CheckCircle, color: 'text-blue-500' },
     { label: t.reports.pending, value: pending, icon: Clock, color: 'text-yellow-500' },
     { label: t.reports.cancelled, value: cancelled, icon: XCircle, color: 'text-red-500' },
-    { label: lang === 'ar' ? 'إجمالي الإيراد' : 'Total Revenue', value: `${totalRevenue.toLocaleString()} EGP`, icon: BarChart2, color: 'text-green-500' },
-    { label: lang === 'ar' ? 'الإيراد المحصل' : 'Collected Revenue', value: `${completedRevenue.toLocaleString()} EGP`, icon: BarChart2, color: 'text-blue-500' },
+    { label: lang === 'ar' ? 'إجمالي الإيراد' : 'Total Revenue', value: `$${totalRevenue.toLocaleString()}`, icon: BarChart2, color: 'text-green-500' },
+    { label: lang === 'ar' ? 'الإيراد المحصل' : 'Collected Revenue', value: `$${completedRevenue.toLocaleString()}`, icon: BarChart2, color: 'text-blue-500' },
   ];
 
   const appointmentsTableRows = useMemo(() => {
@@ -168,21 +168,21 @@ export default function ReportsPage() {
         <Card className="border-amber-500/20">
           <CardHeader><CardTitle className="text-amber-500">{lang === 'ar' ? 'الإيراد المتوقع' : 'Expected Revenue'}</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{expectedRevenue.toLocaleString()} EGP</p>
+            <p className="text-3xl font-semibold">{`$${expectedRevenue.toLocaleString()}`}</p>
             <p className="text-xs text-muted-foreground mt-2">{lang === 'ar' ? 'بانتظار التحصيل' : 'Awaiting collection'}</p>
           </CardContent>
         </Card>
         <Card className="border-green-500/20">
           <CardHeader><CardTitle className="text-green-500">{lang === 'ar' ? 'إيراد المؤكد' : 'Confirmed Revenue'}</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{confirmedRevenue.toLocaleString()} EGP</p>
+            <p className="text-3xl font-semibold">{`$${confirmedRevenue.toLocaleString()}`}</p>
             <p className="text-xs text-muted-foreground mt-2">{lang === 'ar' ? 'حجوزات مؤكدة' : 'Bookings confirmed'}</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
           <CardHeader><CardTitle className="text-red-500">{lang === 'ar' ? 'الإيراد المفقود' : 'Lost Revenue'}</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold line-through decoration-red-500/70">{lostRevenue.toLocaleString()} EGP</p>
+            <p className="text-3xl font-semibold line-through decoration-red-500/70">{`$${lostRevenue.toLocaleString()}`}</p>
             <p className="text-xs text-muted-foreground mt-2">{lang === 'ar' ? 'من الحجوزات الملغاة' : 'From cancelled bookings'}</p>
           </CardContent>
         </Card>
@@ -223,11 +223,11 @@ export default function ReportsPage() {
                     {lang === 'ar' ? 'الإيراد النشط' : 'Active Revenue'}
                   </text>
                   <text x="50%" y="56%" textAnchor="middle" className="fill-foreground text-sm font-semibold">
-                    {totalRevenue.toLocaleString()} EGP
+                    {`$${totalRevenue.toLocaleString()}`}
                   </text>
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value) => [`${Number(value || 0).toLocaleString()} EGP`, lang === 'ar' ? 'الإيراد' : 'Revenue']}
+                    formatter={(value) => [`$${Number(value || 0).toLocaleString()}`, lang === 'ar' ? 'الإيراد' : 'Revenue']}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -238,7 +238,7 @@ export default function ReportsPage() {
                       <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} />
                       <span className="text-muted-foreground">{row.name}</span>
                     </div>
-                    <span>{Number(row.value || 0).toLocaleString()} EGP</span>
+                    <span>{`$${Number(row.value || 0).toLocaleString()}`}</span>
                   </div>
                 ))}
               </div>
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                 <Tooltip
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(240,165,0,0.06)' }}
-                  formatter={(value) => [`${Number(value || 0).toLocaleString()} EGP`, lang === 'ar' ? 'الإيراد' : 'Revenue']}
+                  formatter={(value) => [`$${Number(value || 0).toLocaleString()}`, lang === 'ar' ? 'الإيراد' : 'Revenue']}
                 />
                 <Bar dataKey="revenue" fill="#f0a500" radius={[6, 6, 0, 0]} />
               </BarChart>
@@ -313,7 +313,7 @@ export default function ReportsPage() {
                           <Badge className={statusColor}>{appointment.status}</Badge>
                         </td>
                         <td className={`py-2 ${isCancelled ? 'text-red-500 line-through decoration-red-500/70' : ''}`}>
-                          {Number(appointment.cost || 0).toLocaleString()} EGP
+                          {`$${Number(appointment.cost || 0).toLocaleString()}`}
                         </td>
                       </tr>
                     );

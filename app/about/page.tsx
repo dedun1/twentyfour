@@ -6,6 +6,7 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Footer } from '@/components/layout/Footer';
 import { BookCallButton } from '@/components/layout/BookCallButton';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export default function AboutPage() {
   const { lang } = useLanguage();
@@ -77,9 +78,18 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background">
       <div className="pt-8 lg:pt-12">
         <section className="hero-gradient py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold mb-4 text-foreground">
-              {isAr ? 'بنبني أنظمة عشان أنت ما تبنيهاش' : "We Build Systems So You Don't Have To"}
+              {isAr ? (
+                <>
+                  بنبني <span className="text-amber-500">أنظمة</span> عشان أنت ما تبنيهاش
+                </>
+              ) : (
+                <>
+                  We Build <span className="text-amber-500">Systems</span> So You Don&apos;t Have To
+                </>
+              )}
             </h1>
             <p className="text-lg max-w-2xl mx-auto text-muted-foreground">
               {isAr
@@ -87,22 +97,46 @@ export default function AboutPage() {
                 : 'TwentyFour creates custom automation for businesses that want to grow without growing their team.'}
             </p>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{isAr ? 'قصتنا' : 'Our story'}</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {isAr ? (
+                <>
+                  قصت<span className="text-amber-500">نا</span>
+                </>
+              ) : (
+                <>
+                  Our <span className="text-amber-500">story</span>
+                </>
+              )}
+            </h2>
             <p className="text-muted-foreground leading-relaxed">
               {isAr
                 ? 'TwentyFour بدأت من إحباط بسيط: شفنا الأعمال بتقضي أحسن ساعاتها في شغل المفروض السوفت وير يعمله. إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي. فبنينا TwentyFour للأعمال اللي معندهاش فرق هندسية بس تستاهل أتمتة على مستوى الشركات الكبيرة. إحنا بنبني. هما بياخدوا النتايج.'
                 : "TwentyFour started with a simple frustration: watching businesses spend their best hours on work software should handle. We're builders. We knew automation could solve it. So we built TwentyFour for businesses that don't have engineering teams but deserve enterprise-grade automation. We do the building. They get the results."}
             </p>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="section-gradient py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-6xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">{isAr ? 'إزاي بنشتغل' : 'How We Work'}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">
+              {isAr ? (
+                <>
+                  إزاي <span className="text-amber-500">بنشتغل</span>
+                </>
+              ) : (
+                <>
+                  How We <span className="text-amber-500">Work</span>
+                </>
+              )}
+            </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {howWeWork.map((step) => (
                 <Card key={step.num} className="border-border bg-card">
@@ -115,9 +149,11 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-6xl mx-auto px-6 lg:px-8 grid md:grid-cols-2 gap-6">
             <Card className="border-border bg-card">
               <CardContent className="p-7">
@@ -150,11 +186,23 @@ export default function AboutPage() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-3xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">{isAr ? 'ليه TwentyFour' : 'Why TwentyFour'}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">
+              {isAr ? (
+                <>
+                  ليه <span className="text-amber-500">TwentyFour</span>
+                </>
+              ) : (
+                <>
+                  Why <span className="text-amber-500">TwentyFour</span>
+                </>
+              )}
+            </h2>
             <div className="space-y-3">
               {whyTwentyFour.map((item) => (
                 <Card key={item} className="border-border bg-card">
@@ -166,11 +214,23 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="section-gradient py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-6xl mx-auto px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-center mb-8 text-foreground">{isAr ? 'قيمنا' : 'Our Values'}</h2>
+            <h2 className="text-2xl font-bold text-center mb-8 text-foreground">
+              {isAr ? (
+                <>
+                  <span className="text-amber-500">قيمنا</span>
+                </>
+              ) : (
+                <>
+                  Our <span className="text-amber-500">Values</span>
+                </>
+              )}
+            </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               {values.map((value) => {
                 const Icon = value.icon;
@@ -188,18 +248,29 @@ export default function AboutPage() {
               })}
             </div>
           </div>
+          </ScrollReveal>
         </section>
 
         <section className="py-12 lg:py-16">
+          <ScrollReveal>
           <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
             <h2 className="text-2xl font-bold mb-6 text-foreground">
-              {isAr ? 'مستعد تشوف إيه اللي نقدر نأتمته لعملك؟' : 'Ready to see what we can automate for your business?'}
+              {isAr ? (
+                <>
+                  مستعد تشوف إيه اللي نقدر <span className="text-amber-500">نأتمته</span> لعملك؟
+                </>
+              ) : (
+                <>
+                  Ready to see what we can <span className="text-amber-500">automate</span> for your business?
+                </>
+              )}
             </h2>
             <Link href="/get-started" className="btn-gold inline-flex">
               {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
               {isAr ? <ChevronRight size={16} className="rotate-180" /> : <ArrowRight size={16} />}
             </Link>
           </div>
+          </ScrollReveal>
         </section>
       </div>
       <Footer />

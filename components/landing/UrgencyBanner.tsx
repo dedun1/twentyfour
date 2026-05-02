@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ONBOARDING_SLOTS_PER_MONTH } from '@/lib/constants';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function UrgencyBanner() {
   const { lang } = useLanguage();
@@ -10,6 +11,7 @@ export function UrgencyBanner() {
 
   return (
     <section className="py-8 bg-amber-50 dark:bg-amber-950/20 border-y border-amber-200 dark:border-amber-900">
+      <ScrollReveal>
       <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
         <p className="text-2xl font-semibold text-foreground">
           {isAr
@@ -25,6 +27,7 @@ export function UrgencyBanner() {
           {isAr ? 'احجز مكانك ←' : 'Claim your spot →'}
         </Link>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

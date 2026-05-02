@@ -3,6 +3,7 @@
 import { Sparkles, Clock, User } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function TrustStrip() {
   const { lang } = useLanguage();
@@ -30,6 +31,7 @@ export function TrustStrip() {
 
   return (
     <section className="py-12">
+      <ScrollReveal>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid gap-4 lg:grid-cols-3">
           {items.map((item) => {
@@ -48,6 +50,7 @@ export function TrustStrip() {
           })}
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Activity, ArrowRight, Calendar, ChevronRight, CreditCard, Globe, Shield, Clock, BarChart2 } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 function AutomationMockup({ lang }: { lang: 'ar' | 'en' }) {
   const rows = lang === 'ar'
@@ -66,6 +67,7 @@ export function Hero() {
 
   return (
     <section className="min-h-[90vh] flex items-center pt-16 pb-16 hero-gradient">
+      <ScrollReveal className="w-full">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-start order-2 lg:order-1 max-w-xl mx-auto lg:mx-0">
@@ -73,7 +75,15 @@ export function Hero() {
               {isAr ? 'أتمتة ذكية لعملك' : 'Smart Automation for Business'}
             </span>
             <h1 className="text-5xl lg:text-6xl font-bold leading-tight mb-4 text-foreground">
-              {isAr ? 'أتمت عملك. وفّر وقتك. اكسب أكتر.' : 'Automate Your Business. Save Time. Make More.'}
+              {isAr ? (
+                <>
+                  <span className="text-amber-500">أتمت</span> عملك. وفّر وقتك. اكسب أكتر.
+                </>
+              ) : (
+                <>
+                  <span className="text-amber-500">Automate</span> Your Business. Save Time. Make More.
+                </>
+              )}
             </h1>
             <p className="text-lg mb-8 max-w-lg mx-auto lg:mx-0 text-muted-foreground">
               {isAr
@@ -103,6 +113,7 @@ export function Hero() {
           </div>
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

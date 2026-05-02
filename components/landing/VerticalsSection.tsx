@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Stethoscope, UtensilsCrossed, ShoppingBag, Building2 } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function VerticalsSection() {
   const { lang } = useLanguage();
@@ -34,10 +35,19 @@ export function VerticalsSection() {
 
   return (
     <section className="py-16 lg:py-20">
+      <ScrollReveal>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-foreground mb-3">
-            {isAr ? 'مبنية للأعمال اللي عندها تدفق عملاء مستمر' : 'Built for businesses with a steady stream of customers'}
+            {isAr ? (
+              <>
+                مبنية للأعمال اللي عندها <span className="text-amber-500">تدفق عملاء مستمر</span>
+              </>
+            ) : (
+              <>
+                Built for businesses with a <span className="text-amber-500">steady stream</span> of customers
+              </>
+            )}
           </h2>
           <p className="text-muted-foreground">
             {isAr
@@ -65,6 +75,7 @@ export function VerticalsSection() {
           </Link>
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

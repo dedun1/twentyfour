@@ -7,13 +7,13 @@ import { getNavAuthState } from '@/lib/auth-state';
 import { UserMenu } from './UserMenu';
 import { NavbarMobile } from './NavbarMobile';
 import { NavLinks } from './NavLinks';
+import { NavbarScrollWrapper } from './NavbarScrollWrapper';
 
 export async function Navbar() {
   const auth = await getNavAuthState();
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <NavbarScrollWrapper>
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
@@ -45,7 +45,6 @@ export async function Navbar() {
           <ThemeToggle />
           <NavbarMobile auth={auth} />
         </div>
-      </div>
-    </nav>
+    </NavbarScrollWrapper>
   );
 }

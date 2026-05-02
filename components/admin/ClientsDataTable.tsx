@@ -130,7 +130,7 @@ export function ClientsDataTable({ data, onEdit, onDelete, onSetStatus, loading 
       ),
       cell: ({ row }) => (
         <span className="hidden text-sm lg:inline">
-          {row.original.setup_fee ? `${row.original.setup_fee} EGP` : '-'}
+          {row.original.setup_fee ? `$${row.original.setup_fee}` : '-'}
         </span>
       ),
     },

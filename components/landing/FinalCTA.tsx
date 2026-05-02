@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function FinalCTA() {
   const { lang } = useLanguage();
@@ -10,9 +11,18 @@ export function FinalCTA() {
 
   return (
     <section className="section-gradient py-16 lg:py-20">
+      <ScrollReveal>
       <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
         <h2 className="text-3xl font-bold text-foreground mb-3">
-          {isAr ? 'مستعد تشوف إيه اللي ممكن نأتمته في عملك؟' : "Ready to see what we'd automate for you?"}
+          {isAr ? (
+            <>
+              مستعد تشوف إيه اللي ممكن <span className="text-amber-500">نأتمته</span> في عملك؟
+            </>
+          ) : (
+            <>
+              Ready to see what we&apos;d <span className="text-amber-500">automate</span> for you?
+            </>
+          )}
         </h2>
         <p className="text-muted-foreground mb-6">
           {isAr
@@ -28,6 +38,7 @@ export function FinalCTA() {
           </Button>
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

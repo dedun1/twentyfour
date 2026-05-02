@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PlayCircle } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { PROOF_VIDEO_CHATBOT, PROOF_VIDEO_DASHBOARD } from '@/lib/constants';
 
 function VideoBlock({
@@ -54,9 +55,20 @@ export function ProofSection() {
 
   return (
     <section className="py-16 lg:py-20">
+      <ScrollReveal>
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'شوفها شغالة بجد' : 'See it actually working'}</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-3">
+            {isAr ? (
+              <>
+                شوفها شغالة <span className="text-amber-500">بجد</span>
+              </>
+            ) : (
+              <>
+                See it <span className="text-amber-500">actually</span> working
+              </>
+            )}
+          </h2>
           <p className="text-muted-foreground max-w-3xl mx-auto">
             {isAr
               ? 'ده مش تصميم. اللي تحت ده عميل حقيقي بيحجز من خلال شات بوت، ولوحة التحكم اللي صاحب البيزنس بيشوفها في نفس اللحظة.'
@@ -87,6 +99,7 @@ export function ProofSection() {
             : 'From customer message to booked appointment — under 30 seconds, zero human work.'}
         </p>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

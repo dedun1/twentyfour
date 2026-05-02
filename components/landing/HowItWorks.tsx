@@ -2,6 +2,7 @@
 
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function HowItWorks() {
   const { lang } = useLanguage();
@@ -33,9 +34,20 @@ export function HowItWorks() {
 
   return (
     <section id="how-it-works" className="section-gradient py-16 lg:py-20 scroll-mt-20">
+      <ScrollReveal>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'إزاي بنشتغل' : 'How It Works'}</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-3">
+            {isAr ? (
+              <>
+                إزاي <span className="text-amber-500">بنشتغل</span>
+              </>
+            ) : (
+              <>
+                How It <span className="text-amber-500">Works</span>
+              </>
+            )}
+          </h2>
           <p className="text-muted-foreground">{isAr ? '3 خطوات بسيطة من التشخيص للتشغيل' : 'Three clear steps from discovery to go-live'}</p>
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
@@ -50,6 +62,7 @@ export function HowItWorks() {
           ))}
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

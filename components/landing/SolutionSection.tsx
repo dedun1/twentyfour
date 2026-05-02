@@ -3,6 +3,7 @@
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function SolutionSection() {
   const { lang } = useLanguage();
@@ -36,9 +37,20 @@ export function SolutionSection() {
 
   return (
     <section className="py-16 lg:py-20">
+      <ScrollReveal>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'اللي بيتغير في عملك' : 'What changes for you'}</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-3">
+            {isAr ? (
+              <>
+                اللي <span className="text-amber-500">بيتغير</span> في عملك
+              </>
+            ) : (
+              <>
+                What <span className="text-amber-500">changes</span> for you
+              </>
+            )}
+          </h2>
           <p className="text-muted-foreground">
             {isAr ? 'تلات حاجات كل عميل من TwentyFour بياخدها في أول شهر.' : 'Three things every TwentyFour client gains in the first month.'}
           </p>
@@ -60,6 +72,7 @@ export function SolutionSection() {
           ))}
         </div>
       </div>
+      </ScrollReveal>
     </section>
   );
 }

@@ -3,6 +3,7 @@
 import { MessageCircleX, PhoneOff, CalendarX, FileSpreadsheet, Sunrise, UserMinus } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function ProblemSection() {
   const { lang } = useLanguage();
@@ -43,8 +44,20 @@ export function ProblemSection() {
 
   return (
     <section className="py-16 lg:py-20">
+      <ScrollReveal>
+      <>
       <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'ده بيحصل معاك؟' : 'Sound familiar?'}</h2>
+        <h2 className="text-3xl font-bold text-foreground mb-3">
+          {isAr ? (
+            <>
+              ده بيحصل <span className="text-amber-500">معاك</span>؟
+            </>
+          ) : (
+            <>
+              Sound <span className="text-amber-500">familiar</span>?
+            </>
+          )}
+        </h2>
         <p className="text-muted-foreground mb-8">
           {isAr
             ? 'معظم الأعمال النامية بتخسر من 3 لـ 5 ساعات كل يوم في مهام متكررة ما المفروض تعملها.'
@@ -70,6 +83,8 @@ export function ProblemSection() {
           {isAr ? 'بنينا TwentyFour لأن كل مشكلة من دول ليها حل.' : 'We built TwentyFour because every one of these problems has a solution.'}
         </p>
       </div>
+      </>
+      </ScrollReveal>
     </section>
   );
 }

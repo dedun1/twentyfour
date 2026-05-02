@@ -89,7 +89,7 @@ function priorityClass(p: string) {
 
 function extractDollarsFromROI(roi: string): number {
   if (!roi) return 0;
-  const match = roi.match(/[\$~]?\s*([\d,]+)\s*(?:EGP|USD|\$)?/i);
+  const match = roi.match(/[\$~]?\s*([\d,]+)\s*(?:USD|\$)?/i);
   if (!match) return 0;
   return Number.parseInt(match[1].replace(/,/g, ''), 10) || 0;
 }
