@@ -24,7 +24,7 @@ export async function Navbar() {
 
         {/* Desktop nav links — context-aware */}
         <div className="hidden items-center gap-6 md:flex">
-          <NavLinks isAuthenticated={auth.isAuthenticated} />
+          <NavLinks />
         </div>
 
         {/* Desktop actions */}
@@ -34,14 +34,9 @@ export async function Navbar() {
           {auth.isAuthenticated ? (
             <UserMenu displayName={auth.displayName} email={auth.email} isAdmin={auth.isAdmin} />
           ) : (
-            <>
-              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/login" />}>
-                <span>Sign in</span>
-              </Button>
-              <Button size="sm" nativeButton={false} render={<Link href="/get-started" />}>
-                <span>Get Started</span>
-              </Button>
-            </>
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/login" />}>
+              <span>Sign in</span>
+            </Button>
           )}
         </div>
 

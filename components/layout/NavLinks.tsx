@@ -7,26 +7,20 @@ import { useT } from '@/lib/translations';
 import { cn } from '@/lib/utils';
 
 type NavLinksProps = {
-  isAuthenticated: boolean;
   onClickItem?: () => void;
 };
 
-export function NavLinks({ isAuthenticated, onClickItem }: NavLinksProps) {
+export function NavLinks({ onClickItem }: NavLinksProps) {
   const { lang } = useLanguage();
   const t = useT(lang);
   const pathname = usePathname();
 
-  const links = isAuthenticated
-    ? [
-        { href: '/', label: t.nav.home },
-        { href: '/get-started', label: lang === 'ar' ? 'استشارة جديدة' : 'New consultation' },
-        { href: '/pricing', label: t.nav.pricing },
-      ]
-    : [
-        { href: '/', label: t.nav.home },
-        { href: '/about', label: t.nav.about },
-        { href: '/pricing', label: t.nav.pricing },
-      ];
+  const links = [
+    { href: '/', label: t.nav.home },
+    { href: '/about', label: t.nav.about },
+    { href: '/pricing', label: t.nav.pricing },
+    { href: '/get-started', label: lang === 'ar' ? 'ابدأ الآن' : 'Get Started' },
+  ];
 
   return (
     <>

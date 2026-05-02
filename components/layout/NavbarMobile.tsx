@@ -56,7 +56,7 @@ export function NavbarMobile({ auth }: NavbarMobileProps) {
         ) : null}
 
         <div className="mt-4 flex flex-col gap-1 px-4">
-          <NavLinks isAuthenticated={auth.isAuthenticated} onClickItem={() => setOpen(false)} />
+          <NavLinks onClickItem={() => setOpen(false)} />
         </div>
 
         <div className="mt-4 flex flex-col gap-2 px-4">
@@ -97,9 +97,6 @@ export function NavbarMobile({ auth }: NavbarMobileProps) {
           <div className="mt-4 flex flex-col gap-2 px-4">
             <Button variant="outline" nativeButton={false} render={<Link href="/login" onClick={() => setOpen(false)} />}>
               <span>{lang === 'ar' ? 'تسجيل الدخول' : 'Sign in'}</span>
-            </Button>
-            <Button nativeButton={false} render={<Link href="/get-started" onClick={() => setOpen(false)} />}>
-              <span>{lang === 'ar' ? 'ابدأ الآن' : 'Get Started'}</span>
             </Button>
           </div>
         )}
