@@ -321,7 +321,7 @@ export default function AdminPage() {
     selectClient: lang === 'ar' ? 'اختر العميل' : 'Select client',
     customerName: lang === 'ar' ? 'اسم العميل' : 'Customer Name',
     customerPhone: lang === 'ar' ? 'هاتف العميل' : 'Customer Phone',
-    bookingCost: lang === 'ar' ? 'تكلفة الحجز (EGP)' : 'Booking Cost (EGP)',
+    bookingCost: lang === 'ar' ? 'تكلفة الحجز (USD)' : 'Booking Cost (USD)',
     service: lang === 'ar' ? 'الخدمة' : 'Service',
     status: lang === 'ar' ? 'الحالة' : 'Status',
     date: lang === 'ar' ? 'التاريخ' : 'Date',
@@ -1559,7 +1559,7 @@ export default function AdminPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>{client.plan || '-'}</TableCell>
-                            <TableCell>{Number(client.monthly_price || 0).toLocaleString()} EGP</TableCell>
+                            <TableCell>{`$${Number(client.monthly_price || 0).toLocaleString()}`}</TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
                                 {(client.features || []).map((feature) => (
@@ -1746,7 +1746,7 @@ export default function AdminPage() {
                             {clientFilter === 'all' ? <TableCell>{appointment.clients?.business_name || clientsByClientId[appointment.client_id || '']?.business_name || '-'}</TableCell> : null}
                             <TableCell>{appointment.client_phone || '-'}</TableCell>
                             <TableCell>{appointment.service}</TableCell>
-                            <TableCell>{Number(appointment.cost || 0).toLocaleString()} EGP</TableCell>
+                            <TableCell>{`$${Number(appointment.cost || 0).toLocaleString()}`}</TableCell>
                             <TableCell>{appointment.date}</TableCell>
                             <TableCell>{appointment.time}</TableCell>
                             <TableCell>

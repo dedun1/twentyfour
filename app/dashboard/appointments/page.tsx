@@ -33,8 +33,12 @@ import { RequireFeature } from '@/components/guards/RequireFeature';
 import { useClient } from '@/components/providers/ClientProvider';
 import type { Appointment } from '@/lib/types';
 
-function validateEgyptianPhone(phone: string) {
-  return /^01[0-2,5]\d{8}$/.test(phone.replace(/\s/g, ''));
+/** US phone: 10 digits, or 11 digits with leading country code 1 */
+function validateUSPhone(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return true;
+  if (digits.length === 11 && digits.startsWith('1')) return true;
+  return false;
 }
 
 const STATUS_VARIANTS: Record<Appointment['status'], { className: string }> = {
@@ -146,7 +150,7 @@ export default function AppointmentsPage() {
 
   const handleSave = async () => {
     if (!form.client_name.trim()) return toast.error(lang === 'ar' ? 'أدخل اسم العميل' : 'Enter client name');
-    if (form.client_phone && !validateEgyptianPhone(form.client_phone)) return toast.error(ta.invalidPhone);
+    if (form.client_phone && !validateUSPhone(form.client_phone)) return toast.error(ta.invalidPhone);
     if (!form.service.trim()) return toast.error(lang === 'ar' ? 'أدخل الخدمة' : 'Enter service');
 
     const supabase = createClient();
@@ -226,7 +230,7 @@ export default function AppointmentsPage() {
                   {appt.client_phone && <p className="text-xs text-muted-foreground" dir="ltr">{appt.client_phone}</p>}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{appt.service}</TableCell>
-                <TableCell>{Number(appt.cost || 0).toLocaleString()} EGP</TableCell>
+                <TableCell>${Number(appt.cost || 0).toLocaleString()}</TableCell>
                 <TableCell>
                   <p className="text-sm">{appt.date}</p>
                   <p className="text-xs text-muted-foreground">{appt.time}</p>
@@ -292,7 +296,7 @@ export default function AppointmentsPage() {
                 <Input id="service" value={form.service} onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} placeholder={ta.servicePlaceholder} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cost">Booking Cost (EGP)</Label>
+                <Label htmlFor="cost">{lang === 'ar' ? 'تكلفة الحجز (USD)' : 'Booking Cost (USD)'}</Label>
                 <Input id="cost" type="number" min="0" value={form.cost} onChange={(e) => setForm((p) => ({ ...p, cost: Number(e.target.value || 0) }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">

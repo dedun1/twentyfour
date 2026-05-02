@@ -2,7 +2,7 @@
 
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function SolutionSection() {
   const { lang } = useLanguage();
@@ -35,32 +35,48 @@ export function SolutionSection() {
   ];
 
   return (
-    <section className="py-16 lg:py-20">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-foreground mb-3">{isAr ? 'اللي بيتغير في عملك' : 'What changes for you'}</h2>
-          <p className="text-muted-foreground">
-            {isAr ? 'تلات حاجات كل عميل من TwentyFour بياخدها في أول شهر.' : 'Three things every TwentyFour client gains in the first month.'}
-          </p>
-        </div>
-        <div className="grid lg:grid-cols-3 gap-4">
-          {cards.map((card) => (
-            <Card key={card.num} className="border-border bg-card">
-              <CardContent className="p-6 space-y-4">
-                <p className="text-amber-500 font-bold">{card.num}</p>
-                <h3 className="text-xl font-bold text-foreground">{card.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{card.body}</p>
-                <div className="flex flex-wrap gap-2">
-                  {card.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+    <section className="bg-background py-20 sm:py-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ScrollReveal>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-foreground mb-3">
+              {isAr ? (
+                <>اللي بيتغير في عملك</>
+              ) : (
+                <>
+                  What <span className="text-amber-500">changes</span> for you
+                </>
+              )}
+            </h2>
+            <p className="text-muted-foreground">
+              {isAr ? 'تلات حاجات كل عميل من TwentyFour بياخدها في أول شهر.' : 'Three things every TwentyFour client gains in the first month.'}
+            </p>
+          </div>
+        </ScrollReveal>
+        <ScrollReveal>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {cards.map((card) => (
+              <Card key={card.num} className="rounded-xl bg-card shadow-sm border-0">
+                <CardContent className="p-6 space-y-4">
+                  <p className="text-amber-500 text-3xl font-bold">{card.num}</p>
+                  <h3 className="text-xl font-bold text-foreground">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{card.body}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {card.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );
 }
-

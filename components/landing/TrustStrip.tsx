@@ -3,6 +3,7 @@
 import { Sparkles, Clock, User } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function TrustStrip() {
   const { lang } = useLanguage();
@@ -29,26 +30,27 @@ export function TrustStrip() {
   ];
 
   return (
-    <section className="py-12">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid gap-4 lg:grid-cols-3">
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Card key={item.title} className="bg-card border-border shadow-none">
-                <CardContent className="p-5">
-                  <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-3">
-                    <Icon size={16} className="text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <p className="font-semibold text-foreground mb-1">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.sub}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+    <section className="bg-muted/30 py-20 sm:py-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ScrollReveal>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card key={item.title} className="rounded-xl bg-card shadow-sm border-0">
+                  <CardContent className="p-6">
+                    <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-3">
+                      <Icon size={16} className="text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <p className="font-semibold text-foreground mb-1">{item.title}</p>
+                    <p className="text-sm text-muted-foreground">{item.sub}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );
 }
-

@@ -203,7 +203,7 @@ export default function DashboardPage() {
               { label: lang === 'ar' ? 'بانتظار الإجراء اليوم' : 'Pending Today', value: loading ? '…' : pendingToday, icon: Clock, iconClass: 'text-amber-500' },
               { label: lang === 'ar' ? 'ملغي اليوم' : 'Cancelled Today', value: loading ? '…' : cancelledToday, icon: XCircle, iconClass: 'text-red-500' },
               ...(hasFeature('reports')
-                ? [{ label: lang === 'ar' ? 'إيراد اليوم' : "Today's Revenue", value: loading ? '…' : `${todaysRevenue.toLocaleString()} EGP`, icon: BarChart2, iconClass: 'text-blue-500' }]
+                ? [{ label: lang === 'ar' ? 'إيراد اليوم' : "Today's Revenue", value: loading ? '…' : `$${todaysRevenue.toLocaleString()}`, icon: BarChart2, iconClass: 'text-blue-500' }]
                 : []),
             ].map(({ label, value, icon: Icon, iconClass }) => (
               <Card key={label}>
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`rounded-full px-2 py-1 text-xs ${STATUS_CLASS[appointment.status]}`}>{appointment.status}</span>
-                        <span className="text-sm font-medium">{Number(appointment.cost || 0).toLocaleString()} EGP</span>
+                        <span className="text-sm font-medium">{`$${Number(appointment.cost || 0).toLocaleString()}`}</span>
                       </div>
                     </div>
                   ))}
@@ -331,7 +331,7 @@ export default function DashboardPage() {
             {hasFeature('reports') ? (
             <Card>
               <CardHeader><CardTitle>{lang === 'ar' ? 'إيراد هذا الشهر' : "This Month's Revenue"}</CardTitle></CardHeader>
-              <CardContent className="text-2xl font-semibold">{monthRevenue.toLocaleString()} EGP</CardContent>
+              <CardContent className="text-2xl font-semibold">{`$${monthRevenue.toLocaleString()}`}</CardContent>
             </Card>
             ) : null}
             <Card>
@@ -367,7 +367,7 @@ export default function DashboardPage() {
               <Input value={form.service} onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>{lang === 'ar' ? 'تكلفة الحجز (EGP)' : 'Booking Cost (EGP)'}</Label>
+              <Label>{lang === 'ar' ? 'تكلفة الحجز (USD)' : 'Booking Cost (USD)'}</Label>
               <Input type="number" min="0" value={form.cost} onChange={(e) => setForm((p) => ({ ...p, cost: Number(e.target.value || 0) }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">

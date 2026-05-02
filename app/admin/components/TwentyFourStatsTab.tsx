@@ -35,8 +35,8 @@ type ContactRequestRow = {
 
 const CURRENCY = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
-function formatEgp(value: number) {
-  return `${CURRENCY.format(value)} EGP`;
+function formatUsd(value: number) {
+  return `$${CURRENCY.format(value)}`;
 }
 
 function monthKey(date: Date) {
@@ -199,10 +199,10 @@ export function TwentyFourStatsTab() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Monthly Recurring Revenue', value: formatEgp(totals.monthlyRecurringRevenue), Icon: DollarSign },
+          { label: 'Monthly Recurring Revenue', value: formatUsd(totals.monthlyRecurringRevenue), Icon: DollarSign },
           { label: 'New Clients This Month', value: totals.newClientsThisMonth, Icon: UserPlus },
           { label: 'Total Contact Requests', value: totals.totalContactRequests, Icon: Mail },
-          { label: 'Average Revenue Per Active Client', value: totals.arpa === null ? '—' : formatEgp(totals.arpa), Icon: TrendingUp },
+          { label: 'Average Revenue Per Active Client', value: totals.arpa === null ? '—' : formatUsd(totals.arpa), Icon: TrendingUp },
         ].map(({ label, value, Icon }) => (
           <Card key={label}>
             <CardContent className="min-h-[110px] p-5">
@@ -231,7 +231,7 @@ export function TwentyFourStatsTab() {
                   <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value) => [formatEgp(Number(value || 0)), 'MRR']}
+                    formatter={(value) => [formatUsd(Number(value || 0)), 'MRR']}
                   />
                   <Bar dataKey="revenue" fill="#F59E0B" radius={[6, 6, 0, 0]} />
                 </BarChart>
@@ -288,7 +288,7 @@ export function TwentyFourStatsTab() {
                         {client.subscription_status || 'pending_approval'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatEgp(Number(client.monthly_price || 0))}</TableCell>
+                    <TableCell>{formatUsd(Number(client.monthly_price || 0))}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

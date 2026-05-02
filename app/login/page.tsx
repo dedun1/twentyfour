@@ -46,37 +46,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(240,165,0,0.08) 0%, var(--bg) 60%)',
-      }}
-    >
-      {/* Language switcher top right */}
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_oklab,var(--primary)_12%,transparent)_0%,var(--background)_60%)]">
       <div className="fixed top-4 end-4 z-10">
         <LanguageSwitcher />
       </div>
 
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #f0a500, #ffd700)' }}
-            >
-              <Zap size={20} className="text-[#0a0f1e]" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-300">
+              <Zap size={20} className="text-black" />
             </div>
-            <span className="font-extrabold text-xl" style={{ color: '#f0a500' }}>TwentyFour</span>
+            <span className="font-extrabold text-xl text-primary">TwentyFour</span>
           </Link>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">{t.auth.loginTitle}</h1>
-          <p className="text-[var(--muted-fg)] mt-1">{t.auth.loginSubtitle}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{t.auth.loginTitle}</h1>
+          <p className="text-muted-foreground mt-1">{t.auth.loginSubtitle}</p>
         </div>
 
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.email}</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">{t.auth.email}</label>
               <input
                 {...register('email')}
                 type="email"
@@ -89,8 +79,8 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-[var(--muted-fg)]">{t.auth.password}</label>
-                <button type="button" className="text-xs text-[var(--primary)] hover:underline">
+                <label className="text-sm font-medium text-muted-foreground">{t.auth.password}</label>
+                <button type="button" className="text-xs text-primary hover:underline">
                   {t.auth.forgotPassword}
                 </button>
               </div>
@@ -105,8 +95,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute inset-y-0 end-3 flex items-center"
-                  style={{ color: '#9ca3af' }}
+                  className="absolute inset-y-0 end-3 flex items-center text-muted-foreground hover:text-foreground"
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -123,9 +112,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-[var(--muted-fg)] mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             {t.auth.noAccount}{' '}
-            <Link href="/register" className="text-[var(--primary)] font-semibold hover:underline">
+            <Link href="/register" className="text-primary font-semibold hover:underline">
               {t.auth.registerLink}
             </Link>
           </p>

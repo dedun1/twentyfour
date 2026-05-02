@@ -99,12 +99,7 @@ function RegisterPageInner() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(240,165,0,0.08) 0%, var(--bg) 60%)',
-      }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_oklab,var(--primary)_12%,transparent)_0%,var(--background)_60%)]">
       <div className="fixed top-4 end-4 z-10">
         <LanguageSwitcher />
       </div>
@@ -112,48 +107,45 @@ function RegisterPageInner() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #f0a500, #ffd700)' }}
-            >
-              <Zap size={20} className="text-[#0a0f1e]" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-300">
+              <Zap size={20} className="text-black" />
             </div>
-            <span className="font-extrabold text-xl" style={{ color: '#f0a500' }}>TwentyFour</span>
+            <span className="font-extrabold text-xl text-primary">TwentyFour</span>
           </Link>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">{t.auth.registerTitle}</h1>
-          <p className="text-[var(--muted-fg)] mt-1">{t.auth.registerSubtitle}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{t.auth.registerTitle}</h1>
+          <p className="text-muted-foreground mt-1">{t.auth.registerSubtitle}</p>
         </div>
 
         <div className="glass-card p-8">
           {sessionId ? (
             <div className="mb-4 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
               {lang === 'ar'
-                ? 'تكملة من استشارتك — لدينا بالفعل معلومات عن عملك.'
-                : 'Continuing from your consultation — we already know about your business.'}
+                ? 'تكملة من استشارتك: لدينا بالفعل معلومات عن عملك.'
+                : 'Continuing from your consultation: we already know about your business.'}
             </div>
           ) : null}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.fullName} *</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">{t.auth.fullName} *</label>
               <input {...register('full_name')} className="input-base" placeholder={t.auth.fullNamePlaceholder} />
               {errors.full_name && <p className="text-xs text-red-400 mt-1">{t.common.required}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.email} *</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">{t.auth.email} *</label>
               <input {...register('email')} type="email" className="input-base" placeholder={t.auth.emailPlaceholder} />
               {errors.email && <p className="text-xs text-red-400 mt-1">{t.common.required}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">
-                {t.auth.phone} <span className="text-[var(--muted-fg)]">({t.common.optional})</span>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                {t.auth.phone} <span className="text-muted-foreground">({t.common.optional})</span>
               </label>
               <input {...register('phone')} className="input-base" placeholder={t.auth.phonePlaceholder} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.password} *</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">{t.auth.password} *</label>
               <div className="relative">
                 <input
                   {...register('password')}
@@ -164,8 +156,7 @@ function RegisterPageInner() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute inset-y-0 end-3 flex items-center"
-                  style={{ color: '#9ca3af' }}
+                  className="absolute inset-y-0 end-3 flex items-center text-muted-foreground hover:text-foreground"
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -174,7 +165,7 @@ function RegisterPageInner() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--muted-fg)] mb-1.5">{t.auth.confirmPassword} *</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">{t.auth.confirmPassword} *</label>
               <input
                 {...register('confirm_password')}
                 type="password"
@@ -196,17 +187,17 @@ function RegisterPageInner() {
               {isSubmitting ? <span className="spinner" /> : t.auth.registerButton}
             </button>
 
-            <p className="text-center text-xs text-[var(--muted-fg)]">
+            <p className="text-center text-xs text-muted-foreground">
               {t.auth.termsAgreement}{' '}
-              <span className="text-[var(--primary)] cursor-pointer hover:underline">{t.auth.termsOfService}</span>{' '}
+              <span className="text-primary cursor-pointer hover:underline">{t.auth.termsOfService}</span>{' '}
               {t.auth.and}{' '}
-              <span className="text-[var(--primary)] cursor-pointer hover:underline">{t.auth.privacyPolicy}</span>
+              <span className="text-primary cursor-pointer hover:underline">{t.auth.privacyPolicy}</span>
             </p>
           </form>
 
-          <p className="text-center text-sm text-[var(--muted-fg)] mt-5">
+          <p className="text-center text-sm text-muted-foreground mt-5">
             {t.auth.hasAccount}{' '}
-            <Link href="/login" className="text-[var(--primary)] font-semibold hover:underline">
+            <Link href="/login" className="text-primary font-semibold hover:underline">
               {t.auth.loginLink}
             </Link>
           </p>

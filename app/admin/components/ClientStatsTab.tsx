@@ -37,8 +37,8 @@ type MonthBucket = {
 
 const CURRENCY = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
-function formatEgp(value: number) {
-  return `${CURRENCY.format(value)} EGP`;
+function formatUsd(value: number) {
+  return `$${CURRENCY.format(value)}`;
 }
 
 function monthKey(date: Date) {
@@ -198,7 +198,7 @@ export function ClientStatsTab() {
           { label: 'Completed', value: completedCount, Icon: CheckCheck },
           { label: 'Pending', value: pendingCount, Icon: Clock3 },
           { label: 'Cancelled', value: cancelledCount, Icon: XCircle },
-          { label: 'Total Revenue', value: formatEgp(totalRevenue), Icon: DollarSign },
+          { label: 'Total Revenue', value: formatUsd(totalRevenue), Icon: DollarSign },
         ].map(({ label, value, Icon }) => (
           <Card key={label}>
             <CardContent className="min-h-[110px] p-5">
@@ -253,7 +253,7 @@ export function ClientStatsTab() {
                   <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value) => [formatEgp(Number(value || 0)), 'Revenue']}
+                    formatter={(value) => [formatUsd(Number(value || 0)), 'Revenue']}
                   />
                   <Bar dataKey="revenue" fill="#F59E0B" radius={[6, 6, 0, 0]} />
                 </BarChart>
@@ -295,7 +295,7 @@ export function ClientStatsTab() {
                           <Badge className={STATUS_BADGE_CLASS[appointment.status]}>{appointment.status}</Badge>
                         </TableCell>
                         <TableCell className={isCancelled ? 'line-through decoration-red-500/70 text-red-500' : ''}>
-                          {formatEgp(Number(appointment.cost || 0))}
+                          {formatUsd(Number(appointment.cost || 0))}
                         </TableCell>
                       </TableRow>
                     );

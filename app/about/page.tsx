@@ -1,204 +1,202 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, ChevronRight, Eye, Target, Zap, TrendingUp, Heart } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Footer } from '@/components/layout/Footer';
 import { BookCallButton } from '@/components/layout/BookCallButton';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
+
+const STORY_EN = `TwentyFour started because we lived the problem. We ran service businesses where growth meant drowning in manual work: answering the same customer questions, copying data between apps, chasing no-shows, logging orders by hand.
+
+Every tool we tried was either too generic or too expensive. The ones that worked needed a full-time engineer to maintain. So we built what we wished existed: custom automation designed around how each business actually operates, set up by people who understand operations, priced fairly.
+
+We are not a software company that sells licenses. We study your business, build your system, and keep it running. You focus on customers. We handle the rest.`;
+
+const STORY_AR = `بدأت TwentyFour لأننا عشنا المشكلة. شغّلنا أعمال خدمات كانت النمو فيها يعني الغرق في الشغل اليدوي: الإجابة على نفس أسئلة العملاء، نقل البيانات بين التطبيقات، مطاردة الغائبين، وتسجيل الطلبات يدوياً.
+
+كل أداة جرّبناها كانت إما عامة جداً أو غالية جداً. اللي كان يشتغل كان يحتاج مهندس بدوام كامل عشان يصونه. فبنينا اللي كنا نتمنى يكون موجوداً: أتمتة مخصصة حول طريقة تشغيل كل عمل، من ناس تفهم العمليات، بتسعير عادل.
+
+إحنا مش شركة برمجيات تبيع تراخيص. بندرس عملك، نبني نظامك، ونخليه شغال. أنت تركز على العملاء. وإحنا نهتم بالباقي.`;
+
+const BELIEFS_EN = [
+  {
+    title: 'Results over features',
+    body: "We measure success by what changes in your business, not by how many features we ship. If it does not save you time or money, we do not build it.",
+  },
+  {
+    title: 'Partnership over vendor',
+    body: 'We embed with your team. We learn your operations. We are not selling software from a distance. We are building your system alongside you.',
+  },
+  {
+    title: 'Simplicity over complexity',
+    body: 'The best automation is the kind your team actually uses. We build simple, reliable systems that work from day one, not science projects.',
+  },
+  {
+    title: 'Transparency over promises',
+    body: 'We quote after we understand. We show our math. We tell you what will work and what will not before you pay anything.',
+  },
+];
+
+const BELIEFS_AR = [
+  {
+    title: 'النتائج أهم من الميزات',
+    body: 'نجاحنا يُقاس بما يتغير في عملك، لا بعدد الميزات. لو مش هيوفرلك وقت أو فلوس، مش هنبنيه.',
+  },
+  {
+    title: 'شراكة أهم من مورّد',
+    body: 'بنندمج مع فريقك وبنتعلم تشغيلك. مش بنبيع سوفت وير عن بُعد. بنبني نظامك معاك.',
+  },
+  {
+    title: 'البساطة أهم من التعقيد',
+    body: 'أحسن أتمتة هي اللي فريقك يستخدمها فعلاً. بنبني أنظمة بسيطة وموثوقة تشتغل من أول يوم، مش تجارب معملية.',
+  },
+  {
+    title: 'الشفافية أهم من الوعود',
+    body: 'بنحدد السعر بعد ما نفهم. بنوري الحساب. بنقولك إيه اللي هيشتغل وإيه اللي مش هيشتغل قبل ما تدفع.',
+  },
+];
+
+const FOUNDER_1_EN = { name: 'Eyad Khalil', role: 'Co-Founder', quote: 'Ran service businesses, felt the pain of manual operations firsthand. Built TwentyFour to fix what off-the-shelf tools could not.' };
+const FOUNDER_2_EN = { name: 'Adham Ehab', role: 'Co-Founder', quote: 'Spent years building systems for businesses that deserved better tooling. TwentyFour is what happens when engineering meets real operations.' };
+const FOUNDER_1_AR = { name: 'إياد خليل', role: 'شريك مؤسس', quote: FOUNDER_1_EN.quote };
+const FOUNDER_2_AR = { name: 'أدهم إيهاب', role: 'شريك مؤسس', quote: FOUNDER_2_EN.quote };
 
 export default function AboutPage() {
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
-
-  const howWeWork = [
-    {
-      num: '01',
-      title: isAr ? 'مكالمة استكشاف مجانية' : 'Free Discovery Call',
-      desc: isAr ? 'بنتعرف على شغلتك بالتفصيل' : 'We learn your business in detail.',
-    },
-    {
-      num: '02',
-      title: isAr ? 'عرض مخصص' : 'Custom Proposal',
-      desc: isAr ? 'بنرسم بالظبط هنأتمت إيه وإزاي' : 'We map exactly what to automate and how.',
-    },
-    {
-      num: '03',
-      title: isAr ? 'بناء وتجريب' : 'Build & Test',
-      desc: isAr
-        ? 'عادة من أسبوع لـ 3 أسابيع حسب التعقيد — والجدول الدقيق بيتأكد في العرض.'
-        : 'Usually 1-3 weeks depending on complexity — exact timeline confirmed in your proposal.',
-    },
-    {
-      num: '04',
-      title: isAr ? 'إطلاق ودعم' : 'Launch & Support',
-      desc: isAr ? 'أنت بتدير شغلتك. إحنا بنحافظ على النظام شغّال' : 'You run your business. We keep the system running.',
-    },
-  ];
-
-  const whyTwentyFour = isAr
-    ? [
-        'بنفهم تشغيل الأعمال الصغيرة من الجذور',
-        'بنبني علشان النتايج، مش الشكل',
-        'الإعداد بسرعة وبخطة واضحة',
-        'تسعير شفاف بعد ما نفهم احتياجاتك',
-      ]
-    : [
-        'We understand small business operations from the ground up',
-        'We build for results, not for show',
-        'Fast setup with clear planning',
-        'Transparent pricing after we understand your needs',
-      ];
-
-  const values = [
-    {
-      icon: Zap,
-      title: isAr ? 'بساطة فعلية' : 'Real Simplicity',
-      desc: isAr ? 'مش تقنية معقدة. حل عملي يشتغل من أول يوم' : 'Not complex tech. A practical solution that works from day one.',
-    },
-    {
-      icon: Target,
-      title: isAr ? 'نتائج حقيقية' : 'Real Results',
-      desc: isAr ? 'كل نظام بنبنيه بناءً على مشاكل حقيقية لعملاء حقيقيين' : 'Every system we build is based on real problems from real clients.',
-    },
-    {
-      icon: Heart,
-      title: isAr ? 'دعم مستمر' : 'Continuous Support',
-      desc: isAr ? 'فريقنا معاك دايماً. مش بتشتري برنامج، بتاخد شريك' : "Our team is always with you. You're not buying software, you're getting a partner.",
-    },
-    {
-      icon: TrendingUp,
-      title: isAr ? 'نمو مشترك' : 'Shared Growth',
-      desc: isAr ? 'لما أعمالكم تنمو، إحنا بننمو معاها' : 'When your business grows, we grow with it.',
-    },
-  ];
+  const beliefs = isAr ? BELIEFS_AR : BELIEFS_EN;
+  const founders = isAr
+    ? [FOUNDER_1_AR, FOUNDER_2_AR]
+    : [FOUNDER_1_EN, FOUNDER_2_EN];
 
   return (
     <div className="min-h-screen bg-background">
       <div className="pt-8 lg:pt-12">
-        <section className="hero-gradient py-12 lg:py-16">
-          <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center">
-            <h1 className="text-4xl font-bold mb-4 text-foreground">
-              {isAr ? 'بنبني أنظمة عشان أنت ما تبنيهاش' : "We Build Systems So You Don't Have To"}
-            </h1>
-            <p className="text-lg max-w-2xl mx-auto text-muted-foreground">
-              {isAr
-                ? 'TwentyFour بتبني أتمتة مخصصة للأعمال اللي عايزة تنمو من غير ما تكبّر فريقها.'
-                : 'TwentyFour creates custom automation for businesses that want to grow without growing their team.'}
-            </p>
+        {/* Section 1 — Hero */}
+        <section className="hero-gradient py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <ScrollReveal>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+                {isAr ? (
+                  <>بنبني <span className="text-amber-500">أنظمة</span> عشان أنت ما تبنيهاش</>
+                ) : (
+                  <>
+                    We Build <span className="text-amber-500">Systems</span> So You Don&apos;t Have To
+                  </>
+                )}
+              </h1>
+              <p className="text-lg max-w-2xl mx-auto text-muted-foreground">
+                {isAr
+                  ? 'TwentyFour بتبني أتمتة مخصصة للأعمال اللي عايزة تنمو من غير ما تكبّر فريقها.'
+                  : 'TwentyFour creates custom automation for businesses that want to grow without growing their team.'}
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
-        <section className="py-12 lg:py-16">
-          <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{isAr ? 'قصتنا' : 'Our story'}</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              {isAr
-                ? 'TwentyFour بدأت من إحباط بسيط: شفنا الأعمال بتقضي أحسن ساعاتها في شغل المفروض السوفت وير يعمله. إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي. فبنينا TwentyFour للأعمال اللي معندهاش فرق هندسية بس تستاهل أتمتة على مستوى الشركات الكبيرة. إحنا بنبني. هما بياخدوا النتايج.'
-                : "TwentyFour started with a simple frustration: watching businesses spend their best hours on work software should handle. We're builders. We knew automation could solve it. So we built TwentyFour for businesses that don't have engineering teams but deserve enterprise-grade automation. We do the building. They get the results."}
-            </p>
+        {/* Section 2 — Our Story */}
+        <section className="bg-muted/30 py-20 sm:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <h2 className="text-3xl font-bold text-center text-foreground mb-6">
+                {isAr ? (
+                  <>
+                    قصت<span className="text-amber-500">نا</span>
+                  </>
+                ) : (
+                  <>
+                    Our <span className="text-amber-500">Story</span>
+                  </>
+                )}
+              </h2>
+              <div className="max-w-3xl mx-auto space-y-4 text-muted-foreground leading-relaxed whitespace-pre-line">
+                {isAr ? STORY_AR : STORY_EN}
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
-        <section className="section-gradient py-12 lg:py-16">
-          <div className="max-w-6xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">{isAr ? 'إزاي بنشتغل' : 'How We Work'}</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {howWeWork.map((step) => (
-                <Card key={step.num} className="border-border bg-card">
-                  <CardContent className="p-5">
-                    <p className="text-3xl font-bold mb-3 text-amber-500">{step.num}</p>
-                    <h3 className="font-bold mb-1.5 text-foreground">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground">{step.desc}</p>
-                  </CardContent>
-                </Card>
+        {/* Section 3 — Who We Are */}
+        <section className="bg-background py-20 sm:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <h2 className="text-3xl font-bold text-center text-foreground mb-10">
+                {isAr ? (
+                  <>مين <span className="text-amber-500">إحنا</span></>
+                ) : (
+                  <>
+                    Who We <span className="text-amber-500">Are</span>
+                  </>
+                )}
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                {founders.map((f) => (
+                  <div key={f.name} className="rounded-xl bg-card shadow-sm border-0 p-8 text-center space-y-4">
+                    <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-500/20 text-2xl font-bold text-amber-700 dark:text-amber-400">
+                      {f.name
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{f.name}</p>
+                      <p className="text-sm text-muted-foreground">{f.role}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed text-start">{f.quote}</p>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+
+        {/* Section 4 — What We Believe */}
+        <section className="bg-muted/30 py-20 sm:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <h2 className="text-3xl font-bold text-center text-foreground mb-10">
+                {isAr ? (
+                  <>إيه اللي <span className="text-amber-500">نؤمن</span> بيه</>
+                ) : (
+                  <>
+                    What We <span className="text-amber-500">Believe</span>
+                  </>
+                )}
+              </h2>
+            </ScrollReveal>
+            <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
+              {beliefs.map((b, i) => (
+                <ScrollReveal key={b.title} delay={i * 100}>
+                  <div className="rounded-xl bg-card shadow-sm border-0 p-6 h-full">
+                    <h3 className="font-bold text-foreground mb-3">{b.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{b.body}</p>
+                  </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="py-12 lg:py-16">
-          <div className="max-w-6xl mx-auto px-6 lg:px-8 grid md:grid-cols-2 gap-6">
-            <Card className="border-border bg-card">
-              <CardContent className="p-7">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <Target size={20} className="text-amber-500" />
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground">{isAr ? 'مهمتنا' : 'Our Mission'}</h2>
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {isAr
-                    ? 'نخلي الأتمتة الذكية متاحة وعملية للأعمال اللي محتاجة تنمو بدون تحميل فريقها عبء إضافي.'
-                    : 'Make practical, high-impact automation accessible for businesses that need growth without adding operational overhead.'}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-card">
-              <CardContent className="p-7">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <Eye size={20} className="text-blue-500" />
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground">{isAr ? 'رؤيتنا' : 'Our Vision'}</h2>
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {isAr
-                    ? 'كل صاحب عمل يقدر يبني نظام تشغيل أذكى بدون الحاجة لفريق هندسي داخلي.'
-                    : 'Every business owner can run smarter operations without needing an in-house engineering team.'}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        <section className="py-12 lg:py-16">
-          <div className="max-w-3xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-8 text-center text-foreground">{isAr ? 'ليه TwentyFour' : 'Why TwentyFour'}</h2>
-            <div className="space-y-3">
-              {whyTwentyFour.map((item) => (
-                <Card key={item} className="border-border bg-card">
-                  <CardContent className="p-5 flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-500/15 text-green-500 flex items-center justify-center shrink-0 mt-0.5">✓</div>
-                    <p className="text-sm leading-relaxed text-foreground">{item}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section-gradient py-12 lg:py-16">
-          <div className="max-w-6xl mx-auto px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-center mb-8 text-foreground">{isAr ? 'قيمنا' : 'Our Values'}</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {values.map((value) => {
-                const Icon = value.icon;
-                return (
-                  <Card key={value.title} className="border-border bg-card">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"><Icon size={20} className="text-amber-500" /></div>
-                        <h3 className="font-bold text-foreground">{value.title}</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{value.desc}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-12 lg:py-16">
-          <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
-            <h2 className="text-2xl font-bold mb-6 text-foreground">
-              {isAr ? 'مستعد تشوف إيه اللي نقدر نأتمته لعملك؟' : 'Ready to see what we can automate for your business?'}
-            </h2>
-            <Link href="/get-started" className="btn-gold inline-flex">
-              {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
-              {isAr ? <ChevronRight size={16} className="rotate-180" /> : <ArrowRight size={16} />}
-            </Link>
+        {/* Section 5 — CTA */}
+        <section className="bg-background py-20 sm:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div className="max-w-2xl mx-auto text-center space-y-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                  {isAr ? 'مستعد تشوف إيه اللي نقدر نأتمته لعملك؟' : 'Ready to see what we can automate for your business?'}
+                </h2>
+                <Button
+                  nativeButton={false}
+                  render={<Link href="/get-started" />}
+                  className="rounded-xl bg-amber-500 text-black font-semibold shadow-sm hover:bg-amber-400 px-8 py-6 text-lg"
+                >
+                  {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
+                </Button>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
       </div>
@@ -207,4 +205,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
