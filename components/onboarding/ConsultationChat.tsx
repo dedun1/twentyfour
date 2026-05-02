@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  clearStoredConsultationSessionId,
-  writeStoredConsultationSessionId,
-  readStoredConsultationSessionId,
+  addStoredConsultationSessionId,
+  readStoredConsultationSessionIds,
+  removeStoredConsultationSessionId,
 } from '@/lib/consultation-storage';
 
 type ChatSender = 'user' | 'ai';
@@ -145,7 +145,6 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
   const [isComplete, setIsComplete] = useState(false);
   const [history, setHistory] = useState<SessionListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [anonHasUnfinished, setAnonHasUnfinished] = useState(false);
   const [startSeed, setStartSeed] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [confirmNewChat, setConfirmNewChat] = useState(false);
@@ -168,17 +167,9 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
 
   const recommendationsBase = RECOMMENDATIONS_PUBLIC_PATH;
 
-  const [anonLastSessionId, setAnonLastSessionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated) setAnonLastSessionId(readStoredConsultationSessionId());
-    else setAnonLastSessionId(null);
-  }, [isAuthenticated]);
-
   useEffect(() => {
     if (!isAuthenticated && sessionId) {
-      writeStoredConsultationSessionId(sessionId);
-      setAnonLastSessionId(sessionId);
+      addStoredConsultationSessionId(sessionId);
     }
   }, [isAuthenticated, sessionId]);
 
@@ -256,17 +247,20 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
     };
   }, []);
 
-  const loadSessionHistory = async () => {
-    if (!isAuthenticated) return;
+  const loadSessionHistory = useCallback(async () => {
+    const body: Record<string, unknown> = { action: 'list' };
+    if (!isAuthenticated) {
+      body.sessionIds = readStoredConsultationSessionIds();
+    }
     const res = await fetch('/api/onboarding/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'list' }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) return;
     const data = await res.json();
     setHistory(data.sessions || []);
-  };
+  }, [isAuthenticated]);
 
   const loadSession = async (id: string) => {
     let res: Response;
@@ -277,16 +271,14 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
         body: JSON.stringify({ action: 'load', sessionId: id }),
       });
     } catch {
-      if (!isAuthenticated) clearStoredConsultationSessionId();
-      setAnonLastSessionId(null);
+      if (!isAuthenticated) removeStoredConsultationSessionId(id);
       skipResumePropRef.current = true;
       openingInitRef.current = false;
       setStartSeed((s) => s + 1);
       return;
     }
     if (!res.ok) {
-      if (!isAuthenticated) clearStoredConsultationSessionId();
-      setAnonLastSessionId(null);
+      if (!isAuthenticated) removeStoredConsultationSessionId(id);
       skipResumePropRef.current = true;
       openingInitRef.current = false;
       setStartSeed((s) => s + 1);
@@ -357,11 +349,9 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
     startedRef.current = false;
     openingInitRef.current = false;
     setStartSeed((s) => s + 1);
-    if (!isAuthenticated) {
-      setAnonHasUnfinished(false);
-      clearStoredConsultationSessionId();
-      setAnonLastSessionId(null);
-    }
+    // For anonymous users, the new session id will be added to localStorage by the
+    // useEffect above when sessionId state updates. Old sessions remain accessible
+    // via the history panel.
     await loadSessionHistory();
   };
 
@@ -384,6 +374,9 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
     }
     setDeleteConfirmId(null);
     setHistory((prev) => prev.filter((s) => s.id !== id));
+    if (!isAuthenticated) {
+      removeStoredConsultationSessionId(id);
+    }
     if (sessionId === id) {
       await performNewSession();
     }
@@ -391,20 +384,7 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
 
   useEffect(() => {
     void loadSessionHistory();
-    if (!isAuthenticated) {
-      void (async () => {
-        const res = await fetch('/api/onboarding/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'anon-status' }),
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        setAnonHasUnfinished(Boolean(data.hasMessages));
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadSessionHistory]);
 
   useEffect(() => {
     if (!initialSessionId || initialLoadRef.current) return;
@@ -470,7 +450,7 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
       }
     };
     void runStart();
-  }, [lang, onComplete, startSeed, initialSessionId, startPipelinePolling]);
+  }, [lang, onComplete, startSeed, initialSessionId, startPipelinePolling, loadSessionHistory]);
 
   const handleSend = async () => {
     if (inFlightRef.current || isLoading || isComplete) return;
@@ -600,12 +580,10 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
       <div className="max-w-2xl mx-auto space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {isAuthenticated ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)}>
-                <History className="size-4 me-1" />
-                {lang === 'ar' ? 'السجل' : 'History'}
-              </Button>
-            ) : null}
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)}>
+              <History className="size-4 me-1" />
+              {lang === 'ar' ? 'السجل' : 'History'}
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => void createNewSession()}>
               <Plus className="size-4 me-1" />
               {lang === 'ar' ? 'محادثة جديدة' : 'New Chat'}
@@ -624,28 +602,7 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
           </div>
         ) : null}
 
-        {!isAuthenticated && anonLastSessionId ? (
-          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
-            <Link
-              href={`${recommendationsBase}?session=${encodeURIComponent(anonLastSessionId)}`}
-              className="underline font-medium text-foreground"
-            >
-              {lang === 'ar' ? 'عرض خطتك السابقة →' : 'View your last plan →'}
-            </Link>
-          </div>
-        ) : null}
-
-        {!isAuthenticated && anonHasUnfinished ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-            {lang === 'ar' ? 'لديك استشارة غير مكتملة.' : 'You have an unfinished consultation.'}{' '}
-            <button className="underline" onClick={() => setAnonHasUnfinished(false)}>{lang === 'ar' ? 'متابعة' : 'Continue'}</button>{' '}
-            {lang === 'ar' ? 'أو' : 'or'}{' '}
-            <button className="underline" onClick={() => void performNewSession()}>{lang === 'ar' ? 'ابدأ جديد' : 'Start new'}</button>
-          </div>
-        ) : null}
-
-        {isAuthenticated ? (
-          <aside className={`${showHistory ? 'block' : 'hidden'} rounded-xl border border-border bg-card p-3 max-h-[220px] overflow-y-auto`}>
+        <aside className={`${showHistory ? 'block' : 'hidden'} rounded-xl border border-border bg-card p-3 max-h-[220px] overflow-y-auto`}>
             <p className="text-sm font-semibold mb-2">{lang === 'ar' ? 'جلسات سابقة' : 'Past sessions'}</p>
             <div className="space-y-2">
               {history.length === 0 ? (
@@ -713,7 +670,6 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
               })}
             </div>
           </aside>
-        ) : null}
 
         <div className="flex h-[calc(100vh-170px)] min-h-[560px] flex-col rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border px-4 py-3 flex items-start justify-between gap-3">

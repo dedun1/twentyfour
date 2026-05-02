@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { cookieHasSessionId, removeSessionIdFromCookie } from '@/lib/onboarding-session';
 
 export async function DELETE(
   _request: Request,
@@ -8,17 +9,13 @@ export async function DELETE(
 ) {
   try {
     const { id: sessionId } = await params;
-    console.log('Delete route hit, id:', sessionId);
+    if (!sessionId) return NextResponse.json({ error: 'Missing session id' }, { status: 400 });
 
     const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
-    console.log('Auth user:', user?.id);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    if (!sessionId) return NextResponse.json({ error: 'Missing session id' }, { status: 400 });
-
     const admin = createAdminClient();
+
     const { data: row, error: lookupError } = await admin
       .from('onboarding_sessions')
       .select('id, user_id')
@@ -30,24 +27,31 @@ export async function DELETE(
       return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
     }
     if (!row) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    if (row.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // User-scoped delete: works with RLS policy "users_own_sessions_delete" and user JWT.
-    console.log('Attempting delete of session:', sessionId, 'for user:', user.id);
-    const { error: deleteError } = await supabase
-      .from('onboarding_sessions')
-      .delete()
-      .eq('id', sessionId)
-      .eq('user_id', user.id);
-
-    if (deleteError) {
-      console.log('Supabase delete error:', deleteError);
-      // Fallback: service role (bypasses RLS) when user delete is blocked (e.g. policy not migrated yet).
-      const { error: adminDeleteError } = await admin.from('onboarding_sessions').delete().eq('id', sessionId);
-      if (adminDeleteError) {
-        console.log('Supabase delete error (admin fallback):', adminDeleteError);
-        return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+    // Authorization:
+    // - If session has a user_id, requester must be that user.
+    // - If session is anonymous, cookie array must contain the session id.
+    if (row.user_id) {
+      if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      if (row.user_id !== user.id) {
+        const { data: roleRow } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (roleRow?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
+    } else {
+      const allowed = await cookieHasSessionId(sessionId);
+      if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Delete via service role (works for both auth and anon paths).
+    const { error: adminDeleteError } = await admin.from('onboarding_sessions').delete().eq('id', sessionId);
+    if (adminDeleteError) {
+      console.log('Supabase delete error:', adminDeleteError);
+      return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+    }
+
+    // For anonymous sessions, also remove from the cookie so the history list updates.
+    if (!row.user_id) {
+      await removeSessionIdFromCookie(sessionId);
     }
 
     return NextResponse.json({ success: true });
@@ -56,4 +60,3 @@ export async function DELETE(
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-

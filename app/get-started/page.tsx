@@ -7,7 +7,7 @@ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ConsultationChat, type ApiCompleteResponse } from '@/components/onboarding/ConsultationChat';
 import { createClient } from '@/lib/supabase/client';
-import { readStoredConsultationSessionId, clearStoredConsultationSessionId } from '@/lib/consultation-storage';
+import { readStoredConsultationSessionIds } from '@/lib/consultation-storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -92,7 +92,7 @@ export default function GetStartedPage() {
       return;
     }
 
-    const stored = readStoredConsultationSessionId();
+    const stored = readStoredConsultationSessionIds()[0] ?? null;
     if (stored) {
       setResumeSessionId(stored);
       setView('choice');
@@ -121,7 +121,7 @@ export default function GetStartedPage() {
         }
       }
     }
-    const stored = readStoredConsultationSessionId();
+    const stored = readStoredConsultationSessionIds()[0] ?? null;
     if (stored) {
       setResumeSessionId(stored);
       setView('choice');
@@ -172,7 +172,6 @@ export default function GetStartedPage() {
                     variant="outline"
                     onClick={() => {
                       setResumeSessionId(null);
-                      if (!isAuthenticated) clearStoredConsultationSessionId();
                       setView('chat');
                     }}
                   >

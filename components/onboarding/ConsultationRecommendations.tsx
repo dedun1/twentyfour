@@ -71,7 +71,21 @@ export default async function ConsultationRecommendations({
   if (!sessionId) redirect(homeRedirectPath);
 
   const cookieStore = await cookies();
-  const cookieSessionId = cookieStore.get(COOKIE_NAME)?.value ?? null;
+  const cookieRaw = cookieStore.get(COOKIE_NAME)?.value ?? null;
+  const cookieIds: string[] = (() => {
+    if (!cookieRaw) return [];
+    const trimmed = cookieRaw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => v.length > 0);
+        }
+      } catch { /* fall through */ }
+    }
+    return [trimmed];
+  })();
   const supabase = await createClient();
   const supabaseAdmin = createAdminClient();
 
@@ -88,7 +102,8 @@ export default async function ConsultationRecommendations({
 
   const row = data as Row;
 
-  if (!user && cookieSessionId !== sessionId) redirect(homeRedirectPath);
+  if (!user && !cookieIds.includes(sessionId)) redirect(homeRedirectPath);
+  if (!user && row.user_id) redirect(homeRedirectPath);
   if (user && row.user_id && row.user_id !== user.id) {
     const { data: roleRow } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (roleRow?.role !== 'admin') redirect(homeRedirectPath);

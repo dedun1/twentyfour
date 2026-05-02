@@ -106,7 +106,21 @@ export default async function OnboardingRecommendationsPage({
   const supabase = await createClient();
   const admin = createAdminClient();
   const cookieStore = await cookies();
-  const cookieSessionId = cookieStore.get(COOKIE_NAME)?.value ?? null;
+  const cookieRaw = cookieStore.get(COOKIE_NAME)?.value ?? null;
+  const cookieIds: string[] = (() => {
+    if (!cookieRaw) return [];
+    const trimmed = cookieRaw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => v.length > 0);
+        }
+      } catch { /* fall through */ }
+    }
+    return [trimmed];
+  })();
   const { data: authData } = await supabase.auth.getUser();
   const user = authData.user;
 
@@ -119,7 +133,7 @@ export default async function OnboardingRecommendationsPage({
   if (error || !data) redirect('/get-started');
   const session = data as SessionRow;
 
-  const isLocked = !user && cookieSessionId !== sessionId;
+  const isLocked = !user && !cookieIds.includes(sessionId);
 
   if (user && session.user_id && session.user_id !== user.id) {
     const { data: roleRow } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();

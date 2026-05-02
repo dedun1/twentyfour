@@ -3,7 +3,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
-import { clearSessionCookie, COOKIE_NAME, getOrCreateSessionId } from '@/lib/onboarding-session';
+import {
+  addSessionIdToCookie,
+  COOKIE_NAME,
+  cookieHasSessionId,
+  getOrCreateSessionId,
+  getSessionIdsFromCookie,
+} from '@/lib/onboarding-session';
 import {
   type ClaudeCapture,
   CONSULTANT_SYSTEM_PROMPT,
@@ -13,6 +19,21 @@ import {
 } from '@/lib/agents/consultant';
 import { runPipeline } from '@/lib/agents/pipeline';
 import type { CapturedFacts, ConsultantOutput } from '@/lib/agents/types';
+
+function parseSessionIdsFromCookieValueLocal(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => v.length > 0);
+      }
+    } catch { /* fall through */ }
+  }
+  return [trimmed];
+}
 
 type TranscriptRole = 'user' | 'assistant';
 type TranscriptEntry = { role: TranscriptRole; content: string; created_at: string };
@@ -542,14 +563,49 @@ export async function POST(request: Request) {
     if (action === 'list') {
       const { data: authData } = await supabase.auth.getUser();
       const authUser = authData.user;
-      if (!authUser) return NextResponse.json({ sessions: [] });
-      const { data, error } = await createAdminClient()
+      const adminClient = createAdminClient();
+
+      if (authUser) {
+        const { data, error } = await adminClient
+          .from('onboarding_sessions')
+          .select('id, captured_business_name, status, created_at, last_activity_at, transcript')
+          .eq('user_id', authUser.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (error) return fail500('list-sessions-auth', error);
+        return NextResponse.json({
+          sessions: (data || []).map((row: any) => ({
+            id: row.id,
+            business_name: row.captured_business_name,
+            status: row.status,
+            created_at: row.created_at,
+            last_activity_at: row.last_activity_at,
+            has_messages: Array.isArray(row.transcript) && row.transcript.length > 0,
+          })),
+        });
+      }
+
+      // Anonymous: client passes its localStorage IDs; server intersects with cookie array
+      // and only returns rows the cookie authorizes.
+      const requestedIdsRaw = Array.isArray((body as any).sessionIds) ? (body as any).sessionIds : [];
+      const requestedIds = (requestedIdsRaw as unknown[])
+        .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+        .map((id) => id.trim());
+
+      const cookieIds = await getSessionIdsFromCookie();
+      const allowedIds = requestedIds.filter((id) => cookieIds.includes(id));
+
+      if (allowedIds.length === 0) return NextResponse.json({ sessions: [] });
+
+      const { data, error } = await adminClient
         .from('onboarding_sessions')
-        .select('id, captured_business_name, status, created_at, last_activity_at, transcript')
-        .eq('user_id', authUser.id)
+        .select('id, captured_business_name, status, created_at, last_activity_at, transcript, user_id')
+        .in('id', allowedIds)
+        .is('user_id', null) // anonymous sessions only
         .order('created_at', { ascending: false })
-        .limit(10);
-      if (error) return fail500('list-sessions', error);
+        .limit(20);
+
+      if (error) return fail500('list-sessions-anon', error);
       return NextResponse.json({
         sessions: (data || []).map((row: any) => ({
           id: row.id,
@@ -570,7 +626,6 @@ export async function POST(request: Request) {
       const authUser = authData.user;
       const adminClient = createAdminClient();
       const cookieStore = await cookies();
-      const cookieSessionId = cookieStore.get(COOKIE_NAME)?.value ?? null;
 
       const { data: row, error: loadError } = await adminClient
         .from('onboarding_sessions')
@@ -590,7 +645,8 @@ export async function POST(request: Request) {
           if (roleRow?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       } else {
-        if (cookieSessionId !== row.id) {
+        const cookieIds = parseSessionIdsFromCookieValueLocal(cookieStore.get(COOKIE_NAME)?.value ?? null);
+        if (!cookieIds.includes(row.id)) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
@@ -629,8 +685,8 @@ export async function POST(request: Request) {
         if (error) return fail500('new-auth-session', error);
         return NextResponse.json({ sessionId: data.id });
       }
-      await clearSessionCookie();
-      const newSessionId = await getOrCreateSessionId();
+      const newSessionId = crypto.randomUUID();
+      await addSessionIdToCookie(newSessionId);
       return NextResponse.json({ sessionId: newSessionId });
     }
 
@@ -736,9 +792,17 @@ export async function POST(request: Request) {
       sessionId = sessionRow.id;
     } else {
       // Anonymous users: cookie-based session.
-      const cookieSessionId = await getOrCreateSessionId();
-      if (sessionIdFromBody && sessionIdFromBody !== cookieSessionId) {
-        return NextResponse.json({ error: 'Session mismatch' }, { status: 403 });
+      // For ongoing sessions, accept any sessionIdFromBody that's in the cookie array.
+      // For first-time visitors, fall back to creating one (getOrCreateSessionId).
+      let cookieSessionId: string;
+      if (sessionIdFromBody) {
+        const allowed = await cookieHasSessionId(sessionIdFromBody);
+        if (!allowed) {
+          return NextResponse.json({ error: 'Session mismatch' }, { status: 403 });
+        }
+        cookieSessionId = sessionIdFromBody;
+      } else {
+        cookieSessionId = await getOrCreateSessionId();
       }
 
       sessionId = cookieSessionId;
@@ -814,6 +878,7 @@ export async function POST(request: Request) {
           .single();
 
         if (insertError) return fail500('create-anon-session', insertError);
+        await addSessionIdToCookie(sessionId);
         sessionRow = inserted as SessionRow;
       }
 
