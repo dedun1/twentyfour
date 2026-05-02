@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Brain, FileBarChart, MessageSquare, Zap } from 'lucide-react';
-import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ConsultationChat, type ApiCompleteResponse } from '@/components/onboarding/ConsultationChat';
 import { createClient } from '@/lib/supabase/client';
@@ -14,8 +13,6 @@ import { Card, CardContent } from '@/components/ui/card';
 function completionCtasLabel(lang: 'ar' | 'en') {
   if (lang === 'ar') {
     return {
-      noAccountBadge: 'لا تحتاج حساباً الآن',
-      alreadyAccount: 'لديك حساب؟ تسجيل الدخول',
       bookCall: 'احجز مكالمة إعداد مجانية',
       createAccount: 'أنشئ حساباً للوصول إلى لوحة التحكم',
       seeRecommendations: 'تريد فقط عرض التوصيات؟',
@@ -23,8 +20,6 @@ function completionCtasLabel(lang: 'ar' | 'en') {
   }
 
   return {
-    noAccountBadge: 'No account needed yet',
-    alreadyAccount: 'Already have an account? Sign in',
     bookCall: 'Book a Free Setup Call',
     createAccount: 'Create Account & Access Dashboard',
     seeRecommendations: 'Just browsing? See recommendations',
@@ -36,31 +31,15 @@ export default function GetStartedPage() {
   const labels = completionCtasLabel(lang);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [displayName, setDisplayName] = useState<string>('');
   const [completePayload, setCompletePayload] = useState<ApiCompleteResponse | null>(null);
   const [view, setView] = useState<'intro' | 'choice' | 'chat'>('intro');
   const [resumeSessionId, setResumeSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
-      try {
-        const supabase = createClient();
-        const { data: authData } = await supabase.auth.getUser();
-        const user = authData.user;
-        setIsAuthenticated(Boolean(user));
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          setDisplayName(profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? '');
-        }
-      } finally {
-        setAuthReady(true);
-      }
+      const supabase = createClient();
+      const { data: authData } = await supabase.auth.getUser();
+      setIsAuthenticated(Boolean(authData.user));
     };
 
     void run();
@@ -136,27 +115,6 @@ export default function GetStartedPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Zap className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-extrabold text-primary">TwentyFour</span>
-          {authReady && isAuthenticated ? (
-            <span className="text-sm text-muted-foreground">
-              {lang === 'ar' ? `مرحباً ${displayName || ''}` : `Hi ${displayName || ''}`}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <LanguageSwitcher />
-          {!isAuthenticated ? (
-            <span className="text-xs border border-border bg-card/60 px-2 py-1 rounded-full">{labels.noAccountBadge}</span>
-          ) : null}
-        </div>
-      </div>
-
       <main className="flex flex-col items-center">
         <div className="w-full max-w-2xl p-4">
           {view === 'choice' && resumeSessionId ? (
@@ -271,27 +229,27 @@ export default function GetStartedPage() {
                 <Button
                   className="bg-amber-500 text-black hover:bg-amber-400"
                   nativeButton={false}
-                  render={
-                    <a href="/book-call" /* TODO: replace with real Calendly/booking URL */ />
-                  }
+                  render={<a href="/book-call" /* TODO: replace with real Calendly/booking URL */ />}
                 >
                   {labels.bookCall}
                 </Button>
 
-                <Button
-                  variant="outline"
-                  className="border-border"
-                  nativeButton={false}
-                  render={
-                    <a
-                      href={`/register?session=${encodeURIComponent(sessionId)}&email=${encodeURIComponent(
-                        capturedEmail,
-                      )}&phone=${encodeURIComponent(capturedPhone)}`}
-                    />
-                  }
-                >
-                  {labels.createAccount}
-                </Button>
+                {!isAuthenticated ? (
+                  <Button
+                    variant="outline"
+                    className="border-border"
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href={`/register?session=${encodeURIComponent(sessionId)}&email=${encodeURIComponent(
+                          capturedEmail,
+                        )}&phone=${encodeURIComponent(capturedPhone)}`}
+                      />
+                    }
+                  >
+                    {labels.createAccount}
+                  </Button>
+                ) : null}
               </div>
 
               <div>
@@ -304,12 +262,6 @@ export default function GetStartedPage() {
               </div>
             </div>
           ) : null}
-
-          <div className="mt-6 text-center">
-            <Link className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline" href="/login">
-              {labels.alreadyAccount}
-            </Link>
-          </div>
         </div>
       </main>
     </div>

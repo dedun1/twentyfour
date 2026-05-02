@@ -1,6 +1,3 @@
-'use client';
-
-import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { BookCallButton } from '@/components/layout/BookCallButton';
 import { Hero } from '@/components/landing/Hero';
@@ -17,24 +14,20 @@ import { FinalCTA } from '@/components/landing/FinalCTA';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-16">
-        <Hero />
-        <TrustStrip />
-        <ProblemSection />
-        <ProofSection />
-        <SolutionSection />
-        <HowItWorks />
-        <VerticalsSection />
-        <UrgencyBanner />
-        <PricingTeaser />
-        <FounderNote />
-        <FinalCTA />
-      </main>
+    <>
+      <Hero />
+      <TrustStrip />
+      <ProblemSection />
+      <ProofSection />
+      <SolutionSection />
+      <HowItWorks />
+      <VerticalsSection />
+      <UrgencyBanner />
+      <PricingTeaser />
+      <FounderNote />
+      <FinalCTA />
       <Footer />
       <BookCallButton />
-    </div>
+    </>
   );
 }
-

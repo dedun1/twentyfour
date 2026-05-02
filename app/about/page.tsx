@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ArrowRight, ChevronRight, Eye, Target, Zap, TrendingUp, Heart } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { BookCallButton } from '@/components/layout/BookCallButton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -76,8 +75,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="pt-24">
+      <div className="pt-8 lg:pt-12">
         <section className="hero-gradient py-12 lg:py-16">
           <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold mb-4 text-foreground">

@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { Toaster } from 'sonner';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { PageShell } from '@/components/layout/PageShell';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <LanguageProvider>
-            {children}
+            <PageShell>{children}</PageShell>
             <Toaster
               richColors
               position="top-center"

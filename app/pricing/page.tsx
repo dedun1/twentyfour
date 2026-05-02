@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { BookCallButton } from '@/components/layout/BookCallButton';
 import { STARTER_PRICE_USD, PRO_PRICE_USD, CUSTOM_PRICE_USD_MIN } from '@/lib/constants';
@@ -82,8 +81,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-24 max-w-7xl mx-auto px-6 lg:px-8 pb-16">
+      <main className="pt-8 lg:pt-12 max-w-7xl mx-auto px-6 lg:px-8 pb-16">
         <section className="text-center mb-10">
           <h1 className="text-4xl font-bold text-foreground mb-3">{isAr ? 'أسعار شهرية بسيطة. ألغي في أي وقت.' : 'Simple monthly pricing. Cancel anytime.'}</h1>
           <p className="text-muted-foreground">{isAr ? 'كل الباقات بتشمل أونبوردنج شخصي، دعم مستمر، وتعديلات غير محدودة.' : 'All plans include personal onboarding, ongoing support, and unlimited adjustments.'}</p>
