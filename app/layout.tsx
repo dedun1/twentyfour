@@ -9,14 +9,15 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: 'TwentyFour. أتمتة الأعمال',
-  description: 'منصة أتمتة مخصصة للأعمال. توفر وقتك وتزيد إيراداتك',
+  title: 'TwentyFour — AI automation for US businesses',
+  description:
+    'Personalized automation plans for US service businesses, e-commerce, and clinics. Save time, recover lost revenue, and scale without hiring.',
   icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body>
         <ThemeProvider>
           <LanguageProvider>

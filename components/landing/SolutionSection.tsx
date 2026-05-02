@@ -14,7 +14,7 @@ export function SolutionSection() {
       body: isAr
         ? 'الـ AI بتاعنا بيجاوب على الأسئلة، بياخد الحجوزات، وبيتعامل مع العملاء الدايمين — بلغتهم، على القنوات اللي بيستخدموها. تليفونك بيبطّل يرن في الحاجات اللي ما المفروض تتعامل معاها.'
         : 'Our AI answers questions, takes bookings, and handles repeat customers — in their language, on the channels they already use. Your phone stops ringing for things you do not need to handle.',
-      tags: ['WhatsApp', 'SMS', 'Instagram', 'Email'],
+      tags: ['SMS', 'Instagram', 'Email', 'Web chat'],
     },
     {
       num: '02',

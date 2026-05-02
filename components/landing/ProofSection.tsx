@@ -66,7 +66,7 @@ export function ProofSection() {
         <div className="grid lg:grid-cols-2 gap-4">
           <VideoBlock
             src={PROOF_VIDEO_CHATBOT}
-            title={isAr ? '1. العميل بيكلم على واتساب' : '1. Customer messages on WhatsApp'}
+            title={isAr ? '1. العميل يرسل رسالة على القناة المفضلة' : '1. Customer messages your business'}
             description={isAr
               ? 'عميل محتمل بيسأل عن المواعيد المتاحة. الـ AI بيرد في ثواني، بلغته، بالمواعيد المتاحة فعلاً — وبيحجزله أوتوماتيكي.'
               : 'A potential customer asks about availability. The AI replies in seconds, in their language, with current open slots — and books them automatically.'}

@@ -119,11 +119,14 @@ export default async function OnboardingRecommendationsPage({
   if (error || !data) redirect('/get-started');
   const session = data as SessionRow;
 
-  if (!user && cookieSessionId !== sessionId) redirect('/get-started');
+  const isLocked = !user && cookieSessionId !== sessionId;
+
   if (user && session.user_id && session.user_id !== user.id) {
     const { data: roleRow } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (roleRow?.role !== 'admin') redirect('/get-started');
   }
+
+  if (!user && session.user_id) redirect('/get-started');
 
   if (session.status !== 'completed') redirect('/get-started');
 
@@ -145,6 +148,25 @@ export default async function OnboardingRecommendationsPage({
         <p className="text-muted-foreground">
           Our team has been notified. Please try again shortly.
         </p>
+      </main>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <main className="max-w-2xl mx-auto px-4 py-20 text-center space-y-6">
+        <h1 className="text-2xl font-bold text-foreground">This plan is saved on its original browser</h1>
+        <p className="text-muted-foreground">
+          For privacy, anonymous consultations stay on the device they were created on. To access your plan from any device, create a free account.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/register" className="inline-block rounded-xl bg-amber-500 text-black px-5 py-3 font-semibold hover:bg-amber-400">
+            Create free account →
+          </Link>
+          <Link href="/get-started" className="inline-block rounded-xl border border-border px-5 py-3 font-semibold hover:bg-muted">
+            Start a new consultation
+          </Link>
+        </div>
       </main>
     );
   }
@@ -633,10 +655,17 @@ export default async function OnboardingRecommendationsPage({
         </div>
       </section>
 
-      <section className="max-w-2xl mx-auto text-center">
+      <section className="max-w-2xl mx-auto text-center space-y-3">
         <p className="text-sm italic text-muted-foreground">
           These numbers are estimates based on what you shared and benchmarks from similar businesses. Your discovery call confirms exact numbers and timeline before you pay anything.
         </p>
+        {session.captured_email ? (
+          <p className="text-sm text-muted-foreground">
+            {"We've also sent this plan to "}
+            <span className="font-semibold text-foreground">{session.captured_email}</span>
+            {" so you have it forever."}
+          </p>
+        ) : null}
       </section>
     </main>
   );

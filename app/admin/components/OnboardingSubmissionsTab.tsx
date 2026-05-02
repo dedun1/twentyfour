@@ -14,8 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Clock3, Mail, MessageCircle, Phone, Trash2, X, ChevronDown } from 'lucide-react';
 
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
-
 type TranscriptRole = 'user' | 'assistant';
 type TranscriptEntry = { role: TranscriptRole; content: string; created_at?: string };
 
@@ -155,7 +153,7 @@ export function OnboardingSubmissionsTab({ onRefresh }: { onRefresh?: () => void
       tableRecs: arabic ? 'التوصيات' : 'Recs',
       tableLastActivity: arabic ? 'آخر نشاط' : 'Last Activity',
       contacted: arabic ? 'تم التواصل' : 'Contacted',
-      openWhatsApp: arabic ? 'افتح واتساب' : 'Open WhatsApp',
+      bookCall: arabic ? 'احجز مكالمة' : 'Book a call',
       markContacted: arabic ? 'تم التواصل' : 'Mark as contacted',
       addNote: arabic ? 'أضف ملاحظة' : 'Add note',
       save: arabic ? 'حفظ' : 'Save',
@@ -218,13 +216,6 @@ export function OnboardingSubmissionsTab({ onRefresh }: { onRefresh?: () => void
     setPricingOpen(false);
     setPitchOpen(false);
     setSheetOpen(true);
-  };
-
-  const openWhatsAppHref = (row: SessionRow): string => {
-    const recTitle = row.recommendations?.[0]?.title ?? '';
-    const businessName = row.captured_business_name || 'there';
-    const text = `Hi ${businessName}, this is TwentyFour. I reviewed your consultation — let's talk about ${recTitle}`;
-    return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(text)}`;
   };
 
   const markContacted = async (row: SessionRow) => {
@@ -670,9 +661,9 @@ export function OnboardingSubmissionsTab({ onRefresh }: { onRefresh?: () => void
                     </Button>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button variant="outline" onClick={() => void saveNote()}>{ui.save}</Button>
-                      <Button className="bg-amber-500 text-black hover:bg-amber-400" nativeButton={false} render={<a href={openWhatsAppHref(selected)} target="_blank" rel="noopener noreferrer" />}>
+                      <Button className="bg-amber-500 text-black hover:bg-amber-400" nativeButton={false} render={<a href="/book-call" /* TODO: replace with real Calendly/booking URL */ />}>
                         <MessageCircle className="size-4 me-2" />
-                        {ui.openWhatsApp}
+                        {ui.bookCall}
                       </Button>
                       {selected.is_anonymous && computeIsAbandonedOlderThan30Days(selected) ? (
                         <Button variant="destructive" onClick={() => void deleteSession(selected)}>

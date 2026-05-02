@@ -1,4 +1,4 @@
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
+import Link from 'next/link';
 
 export default function TermsPage() {
   const today = new Date().toLocaleDateString('en-CA');
@@ -24,7 +24,9 @@ export default function TermsPage() {
       <h2>Changes</h2>
       <p>We may update these terms; we will notify you by email of material changes.</p>
       <h2>Contact</h2>
-      <p>Questions? Reach us on WhatsApp at {SUPPORT_WHATSAPP}.</p>
+      <p>
+        Questions? <Link href="/book-call">Book a call</Link> or use the contact options in the app footer.
+      </p>
     </main>
   );
 }

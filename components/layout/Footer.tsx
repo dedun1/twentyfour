@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Zap } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useT } from '@/lib/translations';
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
 
 export function Footer() {
   const { lang } = useLanguage();
@@ -93,14 +92,12 @@ export function Footer() {
           </p>
         </div>
         <div className="mt-3 text-center">
-          <a
-            href={`https://wa.me/${SUPPORT_WHATSAPP}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/book-call"
             className="text-xs text-[var(--muted-fg)] hover:text-[var(--primary)] transition-colors"
           >
-            WhatsApp: {SUPPORT_WHATSAPP}
-          </a>
+            Book a call
+          </Link>
         </div>
       </div>
     </footer>

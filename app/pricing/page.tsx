@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { BookCallButton } from '@/components/layout/BookCallButton';
 import { STARTER_PRICE_USD, PRO_PRICE_USD, CUSTOM_PRICE_USD_MIN } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,7 @@ export default function PricingPage() {
   ];
 
   const starterItems = [
-    'WhatsApp / SMS booking automation',
+    'SMS booking automation',
     'Automated appointment reminders',
     'Customer database',
     'Daily summary reports',
@@ -63,12 +63,12 @@ export default function PricingPage() {
   ];
   const proItems = [
     'Everything in Starter',
-    'Multi-channel automation (WhatsApp + SMS + Instagram + Email)',
+    'Multi-channel automation (SMS + Instagram + Email + web chat)',
     'AI customer support trained on your FAQs',
     'Lead capture and follow-up sequences',
     'Real-time dashboard with team access',
     'Up to 3 team members',
-    'Priority WhatsApp support',
+    'Priority support',
   ];
   const customItems = [
     'Everything in Pro',
@@ -126,8 +126,8 @@ export default function PricingPage() {
           <Card className="border-border bg-card">
             <CardContent className="p-6 text-sm text-muted-foreground leading-relaxed">
               {isAr
-                ? 'السعر بيغطي السوفت وير، البنية التحتية للـ AI، الدعم، والوقت اللي بنقضيه في بناء وضبط سير العمل بتاعك. بعض القنوات ليها تكاليف خارجية بنمررها بسعرها — رسوم واتساب بيزنس API، رسوم بوابات SMS (تويليو أو ما يعادلها)، وغيرها. بنوضحلك دي كلها في الاستشارة عشان مفيش مفاجآت في الفاتورة.'
-                : 'Pricing covers our software, AI infrastructure, support, and the time we spend building and tuning your workflows. Some channels have third-party costs we pass through at our cost — WhatsApp Business API per-conversation fees, SMS gateway fees (Twilio or equivalent), and similar. These are always disclosed on the consultation call so there are no surprises on your bill.'}
+                ? 'السعر بيغطي السوفت وير، البنية التحتية للـ AI، الدعم، والوقت اللي بنقضيه في بناء وضبط سير العمل بتاعك. بعض القنوات ليها تكاليف خارجية بنمررها بسعرها — رسوم بوابات SMS (تويليو أو ما يعادلها)، وغيرها. بنوضحلك دي كلها في الاستشارة عشان مفيش مفاجآت في الفاتورة.'
+                : 'Pricing covers our software, AI infrastructure, support, and the time we spend building and tuning your workflows. Some channels have third-party costs we pass through at our cost, such as SMS gateway fees (Twilio or equivalent). These are always disclosed on the consultation call so there are no surprises on your bill.'}
             </CardContent>
           </Card>
         </section>
@@ -149,7 +149,7 @@ export default function PricingPage() {
         </section>
       </main>
       <Footer />
-      <WhatsAppButton />
+      <BookCallButton />
     </div>
   );
 }

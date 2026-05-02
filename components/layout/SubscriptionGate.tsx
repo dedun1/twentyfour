@@ -20,16 +20,16 @@ const configs = {
     ar: {
       title: 'مرحباً بك في TwentyFour',
       subtitle: 'يتم الآن إعداد حسابك',
-      desc: 'شكراً لتسجيلك! نراجع نشاطك التجاري بشكل شخصي حتى نوصي بأفضل مسارات الأتمتة المناسبة لك. سنراسلك على واتساب خلال 24 ساعة.',
-      secondary: 'هل تريد تجاوز الانتظار؟ راسلنا الآن وسنقوم بإعدادك اليوم.',
-      action: 'تواصل معنا على واتساب',
+      desc: 'شكراً لتسجيلك! نراجع نشاطك التجاري بشكل شخصي حتى نوصي بأفضل مسارات الأتمتة المناسبة لك. سنتواصل معك عبر البريد أو الهاتف خلال 24 ساعة.',
+      secondary: 'هل تريد تجاوز الانتظار؟ احجز مكالمة الآن وسنقوم بإعدادك اليوم.',
+      action: 'احجز مكالمة',
     },
     en: {
       title: 'Welcome to TwentyFour',
       subtitle: 'Your account is being set up',
-      desc: "Thanks for signing up! We're personally reviewing your business so we can recommend the right automation workflows. You'll hear from us on WhatsApp within 24 hours.",
-      secondary: "Want to skip the wait? Message us now and we'll get you set up today.",
-      action: 'Contact Us on WhatsApp',
+      desc: "Thanks for signing up! We're personally reviewing your business so we can recommend the right automation workflows. You'll hear from us by email or phone within 24 hours.",
+      secondary: "Want to skip the wait? Book a call and we'll get you set up today.",
+      action: 'Book a call',
     },
     icon: Clock,
   },
@@ -37,12 +37,12 @@ const configs = {
     ar: {
       title: 'الحساب متوقف',
       desc: 'تم إيقاف حسابك مؤقتاً. يرجى التواصل مع الدعم لإعادة التفعيل.',
-      action: 'تواصل عبر واتساب',
+      action: 'احجز مكالمة',
     },
     en: {
       title: 'Account Paused',
       desc: 'Your account has been temporarily paused. Please contact support to reactivate.',
-      action: 'Contact Us on WhatsApp',
+      action: 'Book a call',
     },
     icon: PauseCircle,
   },
@@ -50,12 +50,12 @@ const configs = {
     ar: {
       title: 'لم تتم الموافقة على الحساب',
       desc: 'يرجى التواصل مع فريقنا لمعرفة سبب الرفض أو إعادة التقديم.',
-      action: 'تواصل عبر واتساب',
+      action: 'احجز مكالمة',
     },
     en: {
       title: 'Account Not Approved',
       desc: 'Please contact our team for clarification or to reapply.',
-      action: 'Contact Us on WhatsApp',
+      action: 'Book a call',
     },
     icon: XCircle,
   },
@@ -63,12 +63,12 @@ const configs = {
     ar: {
       title: 'انتهى الاشتراك',
       desc: 'انتهى اشتراكك. تواصل معنا إذا أردت إعادة التفعيل.',
-      action: 'تواصل عبر واتساب',
+      action: 'احجز مكالمة',
     },
     en: {
       title: 'Subscription Ended',
       desc: 'Your subscription has ended.',
-      action: 'Contact Us on WhatsApp',
+      action: 'Book a call',
     },
     icon: XCircle,
   },
@@ -89,8 +89,7 @@ export function SubscriptionGate({ rejectionReason, children }: Props) {
 
   const text = config[lang];
   const Icon = config.icon;
-  const whatsappNumber = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '201115581594';
-  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  const bookCallUrl = '/book-call';
   const supabase = createClient();
 
   useEffect(() => {
@@ -161,9 +160,7 @@ export function SubscriptionGate({ rejectionReason, children }: Props) {
             ) : null}
           </div>
           <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={bookCallUrl}
             className="btn-gold w-full justify-center text-sm"
           >
             <MessageCircle size={18} />

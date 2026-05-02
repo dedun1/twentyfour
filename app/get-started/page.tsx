@@ -1,14 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Brain, FileBarChart, MessageSquare, Zap } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ConsultationChat, type ApiCompleteResponse } from '@/components/onboarding/ConsultationChat';
 import { createClient } from '@/lib/supabase/client';
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
 import { readStoredConsultationSessionId, clearStoredConsultationSessionId } from '@/lib/consultation-storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,7 +33,6 @@ function completionCtasLabel(lang: 'ar' | 'en') {
 
 export default function GetStartedPage() {
   const { lang } = useLanguage();
-  const router = useRouter();
   const labels = completionCtasLabel(lang);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -134,13 +131,6 @@ export default function GetStartedPage() {
   const sessionId = completePayload?.sessionId ?? completePayload?.session_id ?? null;
   const capturedEmail = '';
   const capturedPhone = '';
-
-  const waHref =
-    sessionId
-      ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
-          `Hi TwentyFour, I just completed the consultation. My session: ${sessionId}`,
-        )}`
-      : null;
 
   const recommendationsAfterComplete = '/get-started/recommendations';
 
@@ -272,19 +262,19 @@ export default function GetStartedPage() {
               initialSessionId={resumeSessionId}
               onComplete={(payload: ApiCompleteResponse) => {
                 setCompletePayload(payload);
-                const sid = payload.sessionId || payload.session_id || '';
-                if (sid) router.push(`${recommendationsAfterComplete}?session=${encodeURIComponent(sid)}`);
               }}
             />
           )}
 
-          {completePayload && sessionId && waHref ? (
+          {completePayload && sessionId ? (
             <div className="mt-6 space-y-4 text-center">
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <Button
                   className="bg-amber-500 text-black hover:bg-amber-400"
                   nativeButton={false}
-                  render={<a href={waHref} target="_blank" rel="noopener noreferrer" />}
+                  render={
+                    <a href="/book-call" /* TODO: replace with real Calendly/booking URL */ />
+                  }
                 >
                   {labels.bookCall}
                 </Button>

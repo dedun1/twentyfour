@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { History, Menu, Plus, Send, Trash2, Zap } from 'lucide-react';
@@ -152,10 +152,11 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
   const [currentBusinessName, setCurrentBusinessName] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<'completed' | 'in_progress' | 'abandoned'>('in_progress');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [isBuilding, setIsBuilding] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
-  const [readyBannerSessionId, setReadyBannerSessionId] = useState<string | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [planButtonClicked, setPlanButtonClicked] = useState(false);
+  const pollingRef = useRef<number | null>(null);
 
   const startedRef = useRef(false);
   const inFlightRef = useRef(false);
@@ -192,6 +193,69 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
     return () => window.clearInterval(timer);
   }, [placeholders.length]);
 
+  const startPipelinePolling = useCallback((sessionIdToPoll: string) => {
+    if (pollingRef.current !== null) {
+      window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    setPipelineStatus('running');
+    const startedAt = Date.now();
+    const TIMEOUT_MS = 90_000;
+
+    const poll = async () => {
+      if (Date.now() - startedAt > TIMEOUT_MS) {
+        if (pollingRef.current !== null) {
+          window.clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        setPipelineStatus('error');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/onboarding/session/${encodeURIComponent(sessionIdToPoll)}/status`, {
+          method: 'GET',
+          cache: 'no-store',
+        });
+        if (!res.ok) {
+          return;
+        }
+        const data = (await res.json()) as { pipeline_status?: string | null; status?: string | null };
+
+        if (data.pipeline_status === 'complete') {
+          if (pollingRef.current !== null) {
+            window.clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          setPipelineStatus('complete');
+          return;
+        }
+
+        if (data.pipeline_status === 'error') {
+          if (pollingRef.current !== null) {
+            window.clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          setPipelineStatus('error');
+        }
+      } catch {
+        // Swallow transient errors and keep polling until timeout.
+      }
+    };
+
+    void poll();
+    pollingRef.current = window.setInterval(() => void poll(), 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current !== null) {
+        window.clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, []);
+
   const loadSessionHistory = async () => {
     if (!isAuthenticated) return;
     const res = await fetch('/api/onboarding/chat', {
@@ -205,20 +269,60 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
   };
 
   const loadSession = async (id: string) => {
-    const res = await fetch('/api/onboarding/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'load', sessionId: id }),
-    });
-    if (!res.ok) {
-      toast.error(lang === 'ar' ? 'تعذر تحميل الجلسة' : 'Failed to load session');
+    let res: Response;
+    try {
+      res = await fetch('/api/onboarding/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'load', sessionId: id }),
+      });
+    } catch {
+      if (!isAuthenticated) clearStoredConsultationSessionId();
+      setAnonLastSessionId(null);
+      skipResumePropRef.current = true;
+      openingInitRef.current = false;
+      setStartSeed((s) => s + 1);
       return;
     }
-    const data = await res.json();
+    if (!res.ok) {
+      if (!isAuthenticated) clearStoredConsultationSessionId();
+      setAnonLastSessionId(null);
+      skipResumePropRef.current = true;
+      openingInitRef.current = false;
+      setStartSeed((s) => s + 1);
+      return;
+    }
+    const data = await res.json() as {
+      sessionId: string;
+      status: string;
+      transcript?: TranscriptEntry[];
+      captured_business_name?: string | null;
+      pipeline_status?: string | null;
+      pipeline_error?: string | null;
+    };
     setSessionId(data.sessionId);
     setCurrentStatus(data.status === 'completed' ? 'completed' : 'in_progress');
     setCurrentBusinessName(data.captured_business_name || null);
     setIsComplete(data.status === 'completed');
+    setPlanButtonClicked(false);
+    if (data.status === 'completed') {
+      const ps = data.pipeline_status;
+      if (ps === 'complete') {
+        setPipelineStatus('complete');
+      } else if (ps === 'running' || ps === 'pending' || ps === null || ps === undefined) {
+        startPipelinePolling(data.sessionId);
+      } else if (ps === 'error') {
+        setPipelineStatus('error');
+      } else {
+        setPipelineStatus('error');
+      }
+    } else {
+      setPipelineStatus('idle');
+      if (pollingRef.current !== null) {
+        window.clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    }
     const loadedMessages: ChatMessage[] = (data.transcript || []).map((entry: TranscriptEntry) => ({
       sender: entry.role === 'assistant' ? 'ai' : 'user',
       content: entry.role === 'assistant' ? sanitizeAIMessage(entry.content) : entry.content,
@@ -243,7 +347,12 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
     setCurrentStatus('in_progress');
     setCurrentBusinessName(null);
     setShowGenerateButton(false);
-    setReadyBannerSessionId(null);
+    setPlanButtonClicked(false);
+    setPipelineStatus('idle');
+    if (pollingRef.current !== null) {
+      window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
     setConfirmNewChat(false);
     startedRef.current = false;
     openingInitRef.current = false;
@@ -337,20 +446,14 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
           setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
           setIsComplete(true);
           setCurrentStatus('completed');
-          setIsLoading(true);
-          setIsBuilding(true);
-          const redirectSessionId = (data as ApiCompleteResponse).session_id || data.sessionId || sessionId;
-          setReadyBannerSessionId(redirectSessionId || null);
+          setPlanButtonClicked(false);
+          const completionSessionId =
+            (data as ApiCompleteResponse).session_id || (data as ApiCompleteResponse).sessionId || sessionId || '';
           const normalizedComplete: ApiCompleteResponse = {
             ...(data as ApiCompleteResponse),
-            sessionId: redirectSessionId || '',
+            sessionId: completionSessionId,
           };
-          window.setTimeout(() => {
-            const sid = redirectSessionId || '';
-            if (sid) {
-              window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
-            }
-          }, 3000);
+          if (completionSessionId) startPipelinePolling(completionSessionId);
           onComplete(normalizedComplete);
           return;
         }
@@ -367,7 +470,7 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
       }
     };
     void runStart();
-  }, [lang, onComplete, startSeed, initialSessionId]);
+  }, [lang, onComplete, startSeed, initialSessionId, startPipelinePolling]);
 
   const handleSend = async () => {
     if (inFlightRef.current || isLoading || isComplete) return;
@@ -397,20 +500,14 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
         setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
         setIsComplete(true);
         setCurrentStatus('completed');
-        setIsLoading(true);
-        setIsBuilding(true);
-        const redirectSessionId = (data as ApiCompleteResponse).session_id || data.sessionId || sessionId;
-        setReadyBannerSessionId(redirectSessionId || null);
+        setPlanButtonClicked(false);
+        const completionSessionId =
+          (data as ApiCompleteResponse).session_id || (data as ApiCompleteResponse).sessionId || sessionId || '';
         const normalizedComplete: ApiCompleteResponse = {
           ...(data as ApiCompleteResponse),
-          sessionId: redirectSessionId || '',
+          sessionId: completionSessionId,
         };
-        window.setTimeout(() => {
-          const sid = redirectSessionId || '';
-          if (sid) {
-            window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
-          }
-        }, 3000);
+        if (completionSessionId) startPipelinePolling(completionSessionId);
         onComplete(normalizedComplete);
         return;
       }
@@ -464,18 +561,20 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
         setMessages((prev) => [...prev, { sender: 'ai', content: cleanMessage }]);
         setIsComplete(true);
         setCurrentStatus('completed');
-        setIsBuilding(true);
-        setReadyBannerSessionId(data.session_id || sessionId);
-        window.setTimeout(() => {
-          const sid = data.session_id || sessionId || '';
-          if (sid) {
-            window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
-          }
-        }, 3000);
+        setPlanButtonClicked(false);
+        const completionSessionId = data.session_id || sessionId || '';
+        if (completionSessionId) startPipelinePolling(completionSessionId);
+        const normalizedComplete: ApiCompleteResponse = {
+          ...(data as ApiCompleteResponse),
+          sessionId: completionSessionId,
+          session_id: completionSessionId,
+        };
+        onComplete(normalizedComplete);
       }
     } catch (err) {
       console.error('Force complete error:', err);
       toast.error(lang === 'ar' ? 'تعذر إنشاء الخطة الآن' : 'Could not generate your plan right now.');
+    } finally {
       setIsGenerating(false);
       setIsLoading(false);
     }
@@ -635,15 +734,6 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
             </div>
           </div>
 
-          {isComplete && (readyBannerSessionId || sessionId) ? (
-            <div className="mx-4 mt-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm">
-              {lang === 'ar' ? 'خطتك جاهزة! اعرض التوصيات →' : 'Your plan is ready! View your recommendations →'}{' '}
-              <Link href={`${recommendationsBase}?session=${encodeURIComponent(readyBannerSessionId || sessionId || '')}`} className="underline font-semibold">
-                {lang === 'ar' ? 'اضغط هنا' : 'Click here'}
-              </Link>
-            </div>
-          ) : null}
-
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {messages.length === 0 && isLoading ? (
               <div className="h-full flex items-center justify-center">
@@ -714,15 +804,6 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
                 </div>
               </div>
             ) : null}
-            {isBuilding ? (
-              <div className="flex justify-start animate-fade-in">
-                <div className="max-w-[80%]">
-                  <p className="text-[10px] text-muted-foreground ms-10 mb-1">
-                    {lang === 'ar' ? 'جاري بناء خطتك...' : 'Building your plan...'}
-                  </p>
-                </div>
-              </div>
-            ) : null}
             <div ref={messagesEndRef} />
           </div>
 
@@ -739,6 +820,40 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
               <p className="mt-1 text-center text-[11px] text-muted-foreground">
                 Your consultant will use everything you&apos;ve shared so far
               </p>
+            </div>
+          ) : null}
+
+          {isComplete && !planButtonClicked ? (
+            <div className="px-4 pb-2">
+              <button
+                type="button"
+                className={`w-full rounded-xl py-3 font-semibold transition flex items-center justify-center gap-2 ${
+                  pipelineStatus === 'complete' || pipelineStatus === 'error'
+                    ? 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
+                    : 'bg-amber-500/40 text-white cursor-not-allowed'
+                }`}
+                disabled={pipelineStatus !== 'complete' && pipelineStatus !== 'error'}
+                onClick={() => {
+                  const sid = sessionId || '';
+                  if (!sid) return;
+                  setPlanButtonClicked(true);
+                  window.location.href = `${RECOMMENDATIONS_PUBLIC_PATH}?session=${encodeURIComponent(sid)}`;
+                }}
+              >
+                {pipelineStatus === 'running' ? (
+                  <>
+                    <span className="inline-block size-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    <span>Building your plan...</span>
+                  </>
+                ) : pipelineStatus === 'error' ? (
+                  <span>View my plan anyway →</span>
+                ) : (
+                  <span>View My Plan →</span>
+                )}
+              </button>
+              {pipelineStatus === 'running' ? (
+                <p className="mt-1 text-center text-[11px] text-muted-foreground">Usually takes 15-30 seconds</p>
+              ) : null}
             </div>
           ) : null}
 

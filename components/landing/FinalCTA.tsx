@@ -2,14 +2,11 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 
 export function FinalCTA() {
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
-  const text = encodeURIComponent('Hi TwentyFour, I have a question about your service.');
-  const waHref = `https://wa.me/${SUPPORT_WHATSAPP}?text=${text}`;
 
   return (
     <section className="section-gradient py-16 lg:py-20">
@@ -26,8 +23,8 @@ export function FinalCTA() {
           <Button nativeButton={false} render={<Link href="/get-started" />}>
             {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
           </Button>
-          <Button variant="outline" nativeButton={false} render={<a href={waHref} target="_blank" rel="noopener noreferrer" />}>
-            {isAr ? 'تواصل مع شخص حقيقي على واتساب' : 'Talk to a Human on WhatsApp'}
+          <Button variant="outline" nativeButton={false} render={<Link href="/book-call" />}>
+            {isAr ? 'احجز مكالمة مع فريقنا' : 'Book a call with our team'}
           </Button>
         </div>
       </div>

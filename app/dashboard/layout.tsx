@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { SubscriptionGate } from '@/components/layout/SubscriptionGate';
 import { DashboardNotifications } from '@/components/layout/DashboardNotifications';
 import { ClientProvider } from '@/components/providers/ClientProvider';
-import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { BookCallButton } from '@/components/layout/BookCallButton';
 import type { FeatureKey, SubscriptionStatus, UserRole } from '@/lib/types';
 
 export const revalidate = 0;
@@ -77,7 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </SubscriptionGate>
           </div>
         </main>
-        <WhatsAppButton />
+        <BookCallButton />
       </div>
     </ClientProvider>
   );

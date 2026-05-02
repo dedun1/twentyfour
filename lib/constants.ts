@@ -1,4 +1,3 @@
-export const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '01115581594';
 export const FOUNDER_1_NAME = 'Eyad Khalil';
 export const FOUNDER_1_TITLE = 'Co-Founder';
 export const FOUNDER_1_PHOTO = '/founders/eyad.jpg';

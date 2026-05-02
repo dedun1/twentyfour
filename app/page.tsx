@@ -2,7 +2,7 @@
 
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { BookCallButton } from '@/components/layout/BookCallButton';
 import { Hero } from '@/components/landing/Hero';
 import { TrustStrip } from '@/components/landing/TrustStrip';
 import { ProblemSection } from '@/components/landing/ProblemSection';
@@ -33,7 +33,7 @@ export default function LandingPage() {
         <FinalCTA />
       </main>
       <Footer />
-      <WhatsAppButton />
+      <BookCallButton />
     </div>
   );
 }

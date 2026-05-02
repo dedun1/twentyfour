@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { BookCallButton } from '@/components/layout/BookCallButton';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="ml-16 min-h-screen">
         <div className="max-w-7xl mx-auto p-6 lg:p-8">{children}</div>
       </main>
-      <WhatsAppButton />
+      <BookCallButton />
     </div>
   );
 }

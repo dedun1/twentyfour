@@ -5,7 +5,7 @@ import { ArrowRight, ChevronRight, Eye, Target, Zap, TrendingUp, Heart } from 'l
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { BookCallButton } from '@/components/layout/BookCallButton';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function AboutPage() {
@@ -205,7 +205,7 @@ export default function AboutPage() {
         </section>
       </div>
       <Footer />
-      <WhatsAppButton />
+      <BookCallButton />
     </div>
   );
 }

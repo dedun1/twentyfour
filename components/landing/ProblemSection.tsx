@@ -11,7 +11,7 @@ export function ProblemSection() {
   const cards = [
     {
       icon: MessageCircleX,
-      title: isAr ? 'بترد على نفس الأسئلة على الواتساب عشر مرات في اليوم' : 'Answering the same WhatsApp questions ten times a day',
+      title: isAr ? 'بترد على نفس الأسئلة على الرسائل عشر مرات في اليوم' : 'Answering the same customer messages ten times a day',
       sub: isAr ? 'إيه مواعيدكم؟ بتوصلوا؟ السعر كام؟' : 'What time do you open? Do you deliver? How much?',
     },
     {

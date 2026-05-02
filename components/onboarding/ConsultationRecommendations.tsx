@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { MessageCircle, RefreshCw, Rocket } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { SUPPORT_WHATSAPP } from '@/lib/constants';
 import { COOKIE_NAME } from '@/lib/onboarding-session';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -105,12 +104,12 @@ export default async function ConsultationRecommendations({
     const solution = rec.solution ?? rec.what_we_build ?? rec.automation ?? '';
     const roi = rec.estimated_roi ?? rec.roi ?? rec.value ?? '';
     const priority = rec.priority ?? 'medium';
-    const channel = rec.channel ?? 'WhatsApp';
+    const channel = rec.channel ?? 'SMS';
     const safePriority = priority === 'high' || priority === 'medium' || priority === 'low' ? priority : 'medium';
     const safeChannel =
-      channel === 'WhatsApp' || channel === 'SMS' || channel === 'Email' || channel === 'Instagram' || channel === 'Dashboard'
+      channel === 'SMS' || channel === 'Email' || channel === 'Instagram' || channel === 'Dashboard'
         ? channel
-        : 'WhatsApp';
+        : 'SMS';
 
     return {
       title: rec.title?.trim() || (ar ? `توصية ${i + 1}` : `Recommendation ${i + 1}`),
@@ -130,15 +129,7 @@ export default async function ConsultationRecommendations({
   const hasHours = totalHours > 0;
   const maxHours = Math.max(...recsWithHours.map((r) => Number(r.time_saved_hours_per_month || 0)), 1);
 
-  const firstTitle = recs[0]?.title ?? '';
-  const planMsg = encodeURIComponent(
-    `Hi TwentyFour! I just completed the AI consultation and I'm ready to get started. Here's my plan: ${firstTitle}`
-  );
-  const questionsMsg = encodeURIComponent(
-    'Hi TwentyFour, I completed the consultation and have some questions.'
-  );
-  const startHref = `https://wa.me/${SUPPORT_WHATSAPP}?text=${planMsg}`;
-  const talkHref = `https://wa.me/${SUPPORT_WHATSAPP}?text=${questionsMsg}`;
+  const bookCallHref = '/book-call';
 
   const heroTitle = ar ? 'خطة الأتمتة المخصصة لك' : 'Your Custom Automation Plan';
   const heroWithBusiness = businessName
@@ -304,7 +295,7 @@ export default async function ConsultationRecommendations({
                   <Button
                     nativeButton={false}
                     className="w-full bg-amber-500 text-black hover:bg-amber-400"
-                    render={<a href={startHref} target="_blank" rel="noopener noreferrer" />}
+                    render={<a href={bookCallHref} /* TODO: replace with real Calendly/booking URL */ />}
                   >
                     {ar ? 'ابدأ بهذه الخطة →' : 'Start with this plan →'}
                   </Button>
@@ -316,16 +307,16 @@ export default async function ConsultationRecommendations({
                   <h3 className="font-semibold text-lg">{ar ? 'تحدث معنا أولاً' : 'Talk to us first'}</h3>
                   <p className="text-sm text-muted-foreground flex-1">
                     {ar
-                      ? 'لديك أسئلة قبل الالتزام؟ راسلنا على واتساب دون ضغط بيع.'
-                      : 'Have questions before committing? Chat with us on WhatsApp, no sales pressure.'}
+                      ? 'لديك أسئلة قبل الالتزام؟ احجز مكالمة قصيرة دون ضغط بيع.'
+                      : 'Have questions before committing? Book a short call, no sales pressure.'}
                   </p>
                   <Button
                     variant="outline"
                     nativeButton={false}
                     className="w-full"
-                    render={<a href={talkHref} target="_blank" rel="noopener noreferrer" />}
+                    render={<a href={bookCallHref} /* TODO: replace with real Calendly/booking URL */ />}
                   >
-                    {ar ? 'راسلنا على واتساب' : 'Message us on WhatsApp'}
+                    {ar ? 'احجز مكالمة' : 'Book a call'}
                   </Button>
                 </CardContent>
               </Card>

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     } = body;
 
     if (!full_name || !whatsapp) {
-      return NextResponse.json({ error: 'Name and WhatsApp are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Name and best phone number (messaging field) are required' }, { status: 400 });
     }
 
     const supabase = createClient(
