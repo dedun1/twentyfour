@@ -79,8 +79,8 @@ export default function AboutPage() {
               </p>
               <p>
                 {isAr
-                  ? 'إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي — بس معظم أدوات الأتمتة اتبنت للشركات الكبيرة اللي عندها فرق هندسية. فبنينا TwentyFour للأعمال اللي مش عندها فرق هندسية بس تستاهل نفس المستوى.'
-                  : "We're engineers. We knew automation could fix this — but most automation tools were built for enterprises with engineering teams. So we built TwentyFour for the businesses that don't have engineers but deserve enterprise-grade systems."}
+                  ? 'إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي، بس معظم أدوات الأتمتة اتبنت للشركات الكبيرة اللي عندها فرق هندسية. فبنينا TwentyFour للأعمال اللي مش عندها فرق هندسية بس تستاهل نفس المستوى.'
+                  : "We're engineers. We knew automation could fix this, but most automation tools were built for enterprises with engineering teams. So we built TwentyFour for the businesses that don't have engineers but deserve enterprise-grade systems."}
               </p>
               <p className="font-medium text-foreground">
                 {isAr ? 'إحنا بنبني. هما بياخدوا النتايج.' : 'We do the building. They get the results.'}
@@ -93,7 +93,7 @@ export default function AboutPage() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* What We Believe — merged values */}
+      {/* What We Believe (merged values) */}
       <section className="py-16 lg:py-24">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <ScrollReveal>
@@ -111,7 +111,7 @@ export default function AboutPage() {
               const Icon = v.icon;
               return (
                 <ScrollReveal key={v.title} delay={i * 100}>
-                  <div className="rounded-xl border border-border bg-card p-7 transition-all duration-300 hover:border-amber-500/30 hover:shadow-[0_0_30px_rgba(240,165,0,0.06)]">
+                  <div className="card-hover rounded-xl border border-border bg-card p-7">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
                         <Icon size={20} className="text-amber-500" />

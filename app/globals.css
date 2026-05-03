@@ -281,6 +281,11 @@
   to { transform: translateX(-50%); }
 }
 
+@keyframes scaleX {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
 
 .marquee-track {
@@ -301,13 +306,14 @@
   margin: 0 auto;
 }
 
-.section-dark {
-  background: oklch(0.16 0.02 264);
-  color: oklch(0.96 0 0);
+/* Card hover effect — apply to any interactive card */
+.card-hover {
+  transition: all 300ms ease;
 }
-
-.dark .section-dark {
-  background: oklch(0.11 0.02 264);
+.card-hover:hover {
+  border-color: rgba(240, 165, 0, 0.3);
+  box-shadow: 0 0 30px rgba(240, 165, 0, 0.06);
+  transform: scale(1.02);
 }
 
 /* Subtle top-glow for visual separation without bg change */

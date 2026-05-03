@@ -66,7 +66,7 @@ export function ProblemSection() {
             const Icon = card.icon;
             return (
               <ScrollReveal key={card.title} delay={i * 80}>
-                <div className="group relative rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:border-amber-500/30 hover:shadow-[0_0_30px_rgba(240,165,0,0.06)]">
+                <div className="card-hover rounded-xl border border-border bg-card p-6">
                   <div className="w-10 h-10 rounded-lg bg-red-500/10 dark:bg-red-500/[0.07] flex items-center justify-center mb-4">
                     <Icon size={20} className="text-red-400" />
                   </div>

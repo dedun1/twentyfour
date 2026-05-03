@@ -13,14 +13,14 @@ export function HowItWorks() {
       title: isAr ? 'بندرس عملك' : 'We Study Your Business',
       desc: isAr
         ? 'استشارة ذكية مجانية ترسم كل عملياتك وتلاقي اللي بياكل وقتك.'
-        : 'Free AI consultation maps your operations and finds what eats your time.',
+        : 'Free smart consultation maps your operations and finds what eats your time.',
     },
     {
       num: '02',
       title: isAr ? 'بنبني نظامك' : 'We Build Your System',
       desc: isAr
-        ? 'سير عمل مخصص حسب طريقة شغلك بالظبط — مش حلول جاهزة.'
-        : 'Custom workflows built for exactly how you operate — not off-the-shelf templates.',
+        ? 'سير عمل مخصص حسب طريقة شغلك بالظبط، مش حلول جاهزة.'
+        : 'Custom workflows built for exactly how you operate, not off-the-shelf templates.',
     },
     {
       num: '03',
@@ -48,17 +48,15 @@ export function HowItWorks() {
             </p>
           </div>
         </ScrollReveal>
-
         <div className="relative">
-          {/* Connecting line */}
-          <div className="hidden lg:block absolute top-8 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-border" aria-hidden />
-
-          <div className="grid sm:grid-cols-3 gap-8 lg:gap-6">
+          <div className="hidden lg:block absolute top-8 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px overflow-hidden" aria-hidden>
+            <div className="h-full w-full origin-left bg-gradient-to-r from-amber-500/40 via-amber-500 to-amber-500/40 [animation:scaleX_1.2s_ease-out_0.3s_both]" />
+          </div>
+          <div className="grid sm:grid-cols-3 gap-10 lg:gap-6">
             {steps.map((step, i) => (
-              <ScrollReveal key={step.num} delay={i * 150}>
-                <div className="text-center">
-                  {/* Step number circle */}
-                  <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-full border-2 border-amber-500 bg-background mb-6">
+              <ScrollReveal key={step.num} delay={i * 200}>
+                <div className="text-center group">
+                  <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-amber-500 bg-background mb-6 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(240,165,0,0.25)] group-hover:scale-110">
                     <span className="text-xl font-bold text-amber-500">{step.num}</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2 text-foreground">{step.title}</h3>

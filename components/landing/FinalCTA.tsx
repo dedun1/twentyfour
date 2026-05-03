@@ -28,8 +28,8 @@ export function FinalCTA() {
           </h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto leading-relaxed">
             {isAr
-              ? '5 دقائق مع مستشار الـ AI. هتطلع بخطة مخصصة — سواء بقيت عميل أو لأ.'
-              : "5 minutes with our AI consultant. You'll walk away with a custom plan — whether you become a client or not."}
+              ? '5 دقائق مع مستشار الـ AI. هتطلع بخطة مخصصة، سواء بقيت عميل أو لأ.'
+              : "5 minutes with our AI consultant. You'll walk away with a custom plan, whether you become a client or not."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/get-started" className="btn-gold text-base px-8 py-3">
