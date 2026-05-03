@@ -36,12 +36,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" aria-hidden>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-[0.06]"
-            style={{ background: 'radial-gradient(ellipse, #f0a500, transparent 70%)' }} />
-        </div>
+      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden hero-gradient">
         <ScrollReveal>
           <div className="relative z-10 max-w-3xl mx-auto px-6 lg:px-8 text-center">
             <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-6 text-foreground">
@@ -60,40 +55,6 @@ export default function AboutPage() {
         </ScrollReveal>
       </section>
 
-      {/* Our Story */}
-      <section className="py-16 lg:py-24">
-        <ScrollReveal>
-          <div className="max-w-3xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-foreground mb-6 text-center">
-              {isAr ? (
-                <>قصت<span className="text-amber-500">نا</span></>
-              ) : (
-                <>Our <span className="text-amber-500">Story</span></>
-              )}
-            </h2>
-            <div className="text-muted-foreground leading-relaxed space-y-4 text-center">
-              <p>
-                {isAr
-                  ? 'بدأنا TwentyFour بعد ما شفنا نفس المشكلة في كل بيزنس قابلناه: أصحاب أعمال أذكياء بيقضوا أحسن ساعاتهم في شغل المفروض السوفت وير يعمله.'
-                  : 'We started TwentyFour after seeing the same pattern in every business we met: smart owners spending their best hours on work that software should handle.'}
-              </p>
-              <p>
-                {isAr
-                  ? 'إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي، بس معظم أدوات الأتمتة اتبنت للشركات الكبيرة اللي عندها فرق هندسية. فبنينا TwentyFour للأعمال اللي مش عندها فرق هندسية بس تستاهل نفس المستوى.'
-                  : "We're engineers. We knew automation could fix this, but most automation tools were built for enterprises with engineering teams. So we built TwentyFour for the businesses that don't have engineers but deserve enterprise-grade systems."}
-              </p>
-              <p className="font-medium text-foreground">
-                {isAr ? 'إحنا بنبني. هما بياخدوا النتايج.' : 'We do the building. They get the results.'}
-              </p>
-            </div>
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* Divider */}
-      <div className="section-divider" />
-
-      {/* What We Believe (merged values) */}
       <section className="py-16 lg:py-24">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <ScrollReveal>
@@ -105,7 +66,6 @@ export default function AboutPage() {
               )}
             </h2>
           </ScrollReveal>
-
           <div className="grid sm:grid-cols-2 gap-6">
             {values.map((v, i) => {
               const Icon = v.icon;
@@ -127,7 +87,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-16 lg:py-24">
         <ScrollReveal>
           <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">

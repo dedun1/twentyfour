@@ -10,21 +10,17 @@ export function Hero() {
   const isAr = lang === 'ar';
 
   return (
-    <section className="relative min-h-[92vh] flex items-center pt-20 pb-20 overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full opacity-[0.07]"
-          style={{ background: 'radial-gradient(ellipse, #f0a500, transparent 70%)' }} />
-      </div>
+    <section className="relative min-h-[92vh] flex items-center pt-20 pb-20 overflow-hidden hero-gradient">
       <ScrollReveal className="w-full relative z-10">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <span className="badge-gold mb-8 inline-flex">
-            {isAr ? 'وقتك ضايع على شغل المفروض يتعمل لوحده' : 'Your team is doing work that should run itself'}
+            {isAr ? 'من ساعات لثواني' : 'From hours to seconds'}
           </span>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6 text-foreground">
             {isAr ? (
-              <><span className="text-amber-500">أتمت</span> الشغل المتكرر. ركّز على النمو.</>
+              <>اشتغل أقل <span className="text-amber-500">على</span> بيزنسك. اشتغل أكتر على <span className="text-amber-500">تكبيره</span>.</>
             ) : (
-              <><span className="text-amber-500">Automate</span> the Repetitive. Focus on Growth.</>
+              <>Work Less <span className="text-amber-500">on</span> Your Business. Work More on <span className="text-amber-500">Growing</span> It.</>
             )}
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 text-muted-foreground leading-relaxed">

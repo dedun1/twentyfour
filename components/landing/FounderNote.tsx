@@ -79,16 +79,26 @@ export function FounderNote() {
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">
             {isAr ? (
-              <>ليه بنينا <span className="text-amber-500">TwentyFour</span></>
+              <>قصتنا: ليه بنينا <span className="text-amber-500">TwentyFour</span></>
             ) : (
-              <>Why we built <span className="text-amber-500">TwentyFour</span></>
+              <>Our Story: Why We Built <span className="text-amber-500">TwentyFour</span></>
             )}
           </h2>
-          <p className="max-w-2xl mx-auto text-muted-foreground mb-8">
-            {isAr
-              ? 'شفنا الأعمال بتخسر ساعات كل يوم في شغل يدوي. الرد على نفس الرسايل، نقل الحجوزات للإكسل، متابعة العملاء اللي ما حضروش. عرفنا إن الأتمتة هي الحل، بس كل الأدوات الموجودة كانت يا عامة جداً يا غالية أوي. فبنينا TwentyFour: سير عمل ذكي مخصص، أونبوردنج شخصي، أسعار عادلة. كل عميل بنشتغل معاه، بنتابعه شخصياً.'
-              : "We watched businesses lose hours every day to manual work. Replying to the same messages, copying bookings into spreadsheets, chasing customers who did not show up. We knew automation could fix it, but every existing tool was either too generic or too expensive. So we built TwentyFour: custom AI workflows, hands-on onboarding, fair pricing. Every client we take on, we onboard personally."}
-          </p>
+          <div className="max-w-2xl mx-auto text-muted-foreground mb-10 space-y-4">
+            <p>
+              {isAr
+                ? 'بدأنا TwentyFour بعد ما شفنا نفس المشكلة في كل بيزنس قابلناه: أصحاب أعمال أذكياء بيقضوا أحسن ساعاتهم في شغل المفروض السوفت وير يعمله.'
+                : 'We started TwentyFour after seeing the same pattern in every business we met: smart owners spending their best hours on work that software should handle.'}
+            </p>
+            <p>
+              {isAr
+                ? 'إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي، بس معظم أدوات الأتمتة اتبنت للشركات الكبيرة اللي عندها فرق هندسية. فبنينا TwentyFour للأعمال اللي مش عندها فرق هندسية بس تستاهل نفس المستوى.'
+                : "We're engineers. We knew automation could fix this, but most tools were built for enterprises with engineering teams. So we built TwentyFour for the businesses that don't have engineers but deserve enterprise-grade systems."}
+            </p>
+            <p className="font-medium text-foreground">
+              {isAr ? 'إحنا بنبني. هما بياخدوا النتايج.' : 'We do the building. They get the results.'}
+            </p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-6">
             <ScrollReveal delay={0}>
               <FounderCard
