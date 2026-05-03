@@ -79,24 +79,26 @@ export function FounderNote() {
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">
             {isAr ? (
-              <>قصتنا: ليه بنينا <span className="text-amber-500">TwentyFour</span></>
+              <>ليه بنينا <span className="text-amber-500">TwentyFour</span></>
             ) : (
-              <>Our Story: Why We Built <span className="text-amber-500">TwentyFour</span></>
+              <>Why We Built <span className="text-amber-500">TwentyFour</span></>
             )}
           </h2>
           <div className="max-w-2xl mx-auto text-muted-foreground mb-10 space-y-4">
             <p>
               {isAr
-                ? 'بدأنا TwentyFour بعد ما شفنا نفس المشكلة في كل بيزنس قابلناه: أصحاب أعمال أذكياء بيقضوا أحسن ساعاتهم في شغل المفروض السوفت وير يعمله.'
-                : 'We started TwentyFour after seeing the same pattern in every business we met: smart owners spending their best hours on work that software should handle.'}
+                ? 'كل بيزنس اشتغلنا معاه كان بيخسر فلوس من غير ما يحس. فرص بتفوت. إيرادات بتتسرب. وقت بيتضيع في شغل المفروض يشتغل لوحده. كانوا بيكبروا، بس الكبر كان بيعمل فوضى مش ربح.'
+                : 'Every business we worked with was losing money without realizing it. Opportunities slipping away. Revenue lost in the cracks. Time wasted on work that could run on its own. They were growing, but the growth was creating chaos, not profit.'}
             </p>
             <p>
               {isAr
-                ? 'إحنا مهندسين. عرفنا إن الأتمتة تقدر تحل المشكلة دي، بس معظم أدوات الأتمتة اتبنت للشركات الكبيرة اللي عندها فرق هندسية. فبنينا TwentyFour للأعمال اللي مش عندها فرق هندسية بس تستاهل نفس المستوى.'
-                : "We're engineers. We knew automation could fix this, but most tools were built for enterprises with engineering teams. So we built TwentyFour for the businesses that don't have engineers but deserve enterprise-grade systems."}
+                ? 'فبنيناهم أنظمة أتمتة مخصصة. كل نظام مصمم حسب البيزنس وحسب الثغرات اللي كانت بتعطلهم. وقت الاستجابة اتحسّن. الشغل اليدوي اختفى. الإيرادات اللي كانت ضايعة بدأت ترجع.'
+                : 'So we built them custom automation systems. Each one designed around their specific business and the gaps holding them back. Response times improved. Manual work disappeared. Revenue that was being lost started coming back.'}
             </p>
             <p className="font-medium text-foreground">
-              {isAr ? 'إحنا بنبني. هما بياخدوا النتايج.' : 'We do the building. They get the results.'}
+              {isAr
+                ? 'النتيجة كانت دايماً واحدة. عملاء أكتر اتخدموا، فلوس أكتر اترجعت، ووقت أكتر للنمو الحقيقي. TwentyFour هي إزاي بنعمل ده لكل بيزنس نامي.'
+                : 'The result was always the same. More customers served, more money recovered, more time to actually grow. TwentyFour is how we make that happen for every growing business.'}
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-6">

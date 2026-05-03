@@ -33,7 +33,6 @@ export function Footer() {
             <ul className="space-y-2.5">
               {[
                 { href: '/', label: t.nav.home },
-                { href: '/about', label: t.nav.about },
                 { href: '/pricing', label: t.nav.pricing },
                 { href: '/get-started', label: t.nav.contact },
               ].map((link) => (
