@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function FinalCTA() {
@@ -10,36 +10,38 @@ export function FinalCTA() {
   const isAr = lang === 'ar';
 
   return (
-    <section className="section-gradient py-16 lg:py-20">
-      <ScrollReveal>
-      <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-3">
-          {isAr ? (
-            <>
-              مستعد تشوف إيه اللي ممكن <span className="text-amber-500">نأتمته</span> في عملك؟
-            </>
-          ) : (
-            <>
-              Ready to see what we&apos;d <span className="text-amber-500">automate</span> for you?
-            </>
-          )}
-        </h2>
-        <p className="text-muted-foreground mb-6">
-          {isAr
-            ? '5 دقايق مع مستشار الـ AI بتاعنا. هتطلع بخطة أتمتة مخصصة — سواء بقيت عميل أو لأ.'
-            : "5 minutes with our AI consultant. You'll walk away with a tailored automation plan — whether you become a client or not."}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button nativeButton={false} render={<Link href="/get-started" />}>
-            {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
-          </Button>
-          <Button variant="outline" nativeButton={false} render={<Link href="/book-call" />}>
-            {isAr ? 'احجز مكالمة مع فريقنا' : 'Book a call with our team'}
-          </Button>
-        </div>
+    <section className="relative py-20 lg:py-28 overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-[0.06]"
+          style={{ background: 'radial-gradient(ellipse, #f0a500, transparent 70%)' }} />
       </div>
+
+      <ScrollReveal>
+        <div className="relative z-10 max-w-3xl mx-auto px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+            {isAr ? (
+              <>مستعد تشوف إيه اللي ممكن <span className="text-amber-500">نأتمته</span>؟</>
+            ) : (
+              <>Ready to see what we&apos;d <span className="text-amber-500">automate</span> for you?</>
+            )}
+          </h2>
+          <p className="text-muted-foreground mb-8 max-w-lg mx-auto leading-relaxed">
+            {isAr
+              ? '5 دقائق مع مستشار الـ AI. هتطلع بخطة مخصصة — سواء بقيت عميل أو لأ.'
+              : "5 minutes with our AI consultant. You'll walk away with a custom plan — whether you become a client or not."}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/get-started" className="btn-gold text-base px-8 py-3">
+              {isAr ? 'احصل على خطة مجانية' : 'Get Your Free Plan'}
+              {isAr ? <ChevronRight size={18} className="rotate-180" /> : <ArrowRight size={18} />}
+            </Link>
+            <Link href="/book-call" className="btn-outline text-base px-8 py-3">
+              {isAr ? 'احجز مكالمة' : 'Book a Call'}
+            </Link>
+          </div>
+        </div>
       </ScrollReveal>
     </section>
   );
 }
-

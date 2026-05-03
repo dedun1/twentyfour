@@ -1,120 +1,78 @@
 'use client';
 
 import Link from 'next/link';
-import { Activity, ArrowRight, Calendar, ChevronRight, CreditCard, Globe, Shield, Clock, BarChart2 } from 'lucide-react';
+import { ArrowRight, ChevronRight, Clock, Shield, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
-
-function AutomationMockup({ lang }: { lang: 'ar' | 'en' }) {
-  const rows = lang === 'ar'
-    ? [
-        { label: 'حجوزات العملاء', icon: Calendar, count: '24' },
-        { label: 'تذكيرات الدفع', icon: CreditCard, count: '12' },
-        { label: 'التقارير اليومية', icon: BarChart2, count: '11' },
-      ]
-    : [
-        { label: 'Client Booking', icon: Calendar, count: '24' },
-        { label: 'Payment Reminders', icon: CreditCard, count: '12' },
-        { label: 'Daily Reports', icon: BarChart2, count: '11' },
-      ];
-
-  return (
-    <div
-      className="relative rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full mx-auto"
-      style={{
-        background: '#111827',
-        border: '1px solid rgba(240,165,0,0.2)',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(240,165,0,0.1)',
-      }}
-    >
-      <div className="px-5 py-4 flex items-center justify-between" style={{ background: '#1a2535', borderBottom: '1px solid rgba(240,165,0,0.08)' }}>
-        <div className="flex items-center gap-2">
-          <Activity size={16} style={{ color: '#f0a500' }} />
-          <p className="text-sm font-semibold text-white">
-            {lang === 'ar' ? 'الأنظمة الشغّالة' : 'Active Workflows'}
-          </p>
-        </div>
-        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
-          Live
-        </span>
-      </div>
-      <div className="p-4 space-y-3">
-        {rows.map(({ label, icon: Icon, count }) => (
-          <div key={label} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(31,41,55,0.6)', border: '1px solid rgba(240,165,0,0.08)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(240,165,0,0.15)' }}>
-                <Icon size={16} style={{ color: '#f0a500' }} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-white">{label}</p>
-                <p className="text-xs" style={{ color: '#22c55e' }}>● {lang === 'ar' ? 'شغّال' : 'Active'}</p>
-              </div>
-            </div>
-            <div className="text-end">
-              <p className="text-sm font-bold" style={{ color: '#f0a500' }}>{count}</p>
-              <p className="text-xs" style={{ color: '#9ca3af' }}>{lang === 'ar' ? 'اليوم' : 'today'}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function Hero() {
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
 
   return (
-    <section className="min-h-[90vh] flex items-center pt-16 pb-16 hero-gradient">
-      <ScrollReveal className="w-full">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="text-center lg:text-start order-2 lg:order-1 max-w-xl mx-auto lg:mx-0">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6" style={{ background: 'rgba(240,165,0,0.12)', color: '#f0a500', border: '1px solid rgba(240,165,0,0.2)' }}>
-              {isAr ? 'أتمتة ذكية لعملك' : 'Smart Automation for Business'}
-            </span>
-            <h1 className="text-5xl lg:text-6xl font-bold leading-tight mb-4 text-foreground">
-              {isAr ? (
-                <>
-                  <span className="text-amber-500">أتمت</span> عملك. وفّر وقتك. اكسب أكتر.
-                </>
-              ) : (
-                <>
-                  <span className="text-amber-500">Automate</span> Your Business. Save Time. Make More.
-                </>
-              )}
-            </h1>
-            <p className="text-lg mb-8 max-w-lg mx-auto lg:mx-0 text-muted-foreground">
-              {isAr
-                ? 'نبني سير عمل ذكي مخصص يستبدل العمل اليدوي اللي بيرهق فريقك — الرد على العملاء، الحجوزات، المتابعات، والتقارير. أنت تركز على النمو. النظام يهتم بالباقي.'
-                : 'We build custom AI workflows that replace the manual work draining your team — customer messaging, booking, follow-ups, and reporting. You focus on growth. The system handles the rest.'}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <Link href="/get-started" className="btn-gold glow-gold inline-flex">
-                {isAr ? 'احصل على توصيات مجانية' : 'Get Free Recommendations'}
-                {isAr ? <ChevronRight size={16} className="rotate-180" /> : <ArrowRight size={16} />}
-              </Link>
-              <a href="#how-it-works" className="btn-outline inline-flex justify-center">
-                {isAr ? 'شوف ازاي بنشتغل' : 'See How It Works'}
-              </a>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {isAr ? 'استشارة ذكية في 5 دقائق. لا حاجة لحساب.' : '5-minute AI consultation. No account required.'}
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-muted-foreground justify-center lg:justify-start">
-              <div className="flex items-center gap-1.5"><Globe size={14} />{isAr ? 'موثوق من فرق نامية حول العالم' : 'Trusted by growing teams worldwide'}</div>
-              <div className="flex items-center gap-1.5"><Clock size={14} />{isAr ? 'دعم مستمر' : 'Always-on support'}</div>
-              <div className="flex items-center gap-1.5"><Shield size={14} />{isAr ? 'تشغيل آمن' : 'Secure operations'}</div>
-            </div>
+    <section className="relative min-h-[92vh] flex items-center pt-20 pb-20 overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full opacity-[0.07]"
+          style={{ background: 'radial-gradient(ellipse, #f0a500, transparent 70%)' }} />
+      </div>
+
+      <ScrollReveal className="w-full relative z-10">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+          {/* Badge */}
+          <span className="badge-gold mb-8 inline-flex">
+            <Sparkles size={14} />
+            {isAr ? 'أتمتة ذكية للأعمال الأمريكية' : 'AI-Powered Automation for US Businesses'}
+          </span>
+
+          {/* Headline */}
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6 text-foreground">
+            {isAr ? (
+              <>
+                توقف عن توظيف ناس لشغل{' '}
+                <span className="text-amber-500">السوفت وير</span> يقدر يعمله
+              </>
+            ) : (
+              <>
+                Stop Hiring People for Work{' '}
+                <span className="text-amber-500">Software</span> Should Handle
+              </>
+            )}
+          </h1>
+
+          {/* Subheadline */}
+          <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 text-muted-foreground leading-relaxed">
+            {isAr
+              ? 'بنبني أنظمة أتمتة مخصصة بتشيل الشغل اليدوي من على فريقك — الرسائل، الحجوزات، المتابعات، والتقارير. أنت بتنمو. النظام بيشتغل.'
+              : 'We build custom automation systems that take repetitive work off your team — messaging, booking, follow-ups, and reporting. You grow. The system runs.'}
+          </p>
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/get-started" className="btn-gold glow-gold text-base px-8 py-3">
+              {isAr ? 'احصل على خطة مجانية' : 'Get Your Free Plan'}
+              {isAr ? <ChevronRight size={18} className="rotate-180" /> : <ArrowRight size={18} />}
+            </Link>
+            <a href="#how-it-works" className="btn-outline text-base px-8 py-3">
+              {isAr ? 'شوف إزاي بنشتغل' : 'See How It Works'}
+            </a>
           </div>
-          <div className="flex justify-center order-1 lg:order-2">
-            <AutomationMockup lang={lang} />
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            {isAr ? 'استشارة ذكية في 5 دقائق. لا حاجة لحساب.' : '5-minute AI consultation. No account needed.'}
+          </p>
+
+          {/* Trust signals */}
+          <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-muted-foreground justify-center">
+            <div className="flex items-center gap-2"><Clock size={15} />{isAr ? 'إعداد في أيام مش شهور' : 'Setup in days, not months'}</div>
+            <div className="flex items-center gap-2"><Shield size={15} />{isAr ? 'بيانات آمنة ومشفرة' : 'Encrypted & secure'}</div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              {isAr ? 'دعم مباشر' : 'Live support'}
+            </div>
           </div>
         </div>
-      </div>
       </ScrollReveal>
     </section>
   );
 }
-

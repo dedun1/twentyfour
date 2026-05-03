@@ -2,7 +2,6 @@
 
 import { MessageCircleX, PhoneOff, CalendarX, FileSpreadsheet, Sunrise, UserMinus } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { Card, CardContent } from '@/components/ui/card';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export function ProblemSection() {
@@ -12,80 +11,79 @@ export function ProblemSection() {
   const cards = [
     {
       icon: MessageCircleX,
-      title: isAr ? 'بترد على نفس الأسئلة على الرسائل عشر مرات في اليوم' : 'Answering the same customer messages ten times a day',
-      sub: isAr ? 'إيه مواعيدكم؟ بتوصلوا؟ السعر كام؟' : 'What time do you open? Do you deliver? How much?',
+      title: isAr ? 'بترد على نفس الأسئلة كل يوم' : 'Answering the same questions every day',
+      sub: isAr ? 'إيه مواعيدكم؟ بتوصلوا؟ السعر كام؟' : '"What are your hours?" "Do you deliver?" "How much?"',
     },
     {
       icon: PhoneOff,
-      title: isAr ? 'بتفوّت حجوزات لأن مفيش حد كان عند التليفون' : 'Missing bookings because no one was at the phone',
-      sub: isAr ? 'العميل بيروح لحد تاني. وأنت مش حتى عارف.' : "Customer goes elsewhere. You don't even know it happened.",
+      title: isAr ? 'بتفوّت حجوزات لأن محدش رد' : 'Missing bookings because nobody picked up',
+      sub: isAr ? 'العميل بيروح لحد تاني وأنت مش حتى عارف.' : "The customer goes elsewhere. You don't even know.",
     },
     {
       icon: CalendarX,
-      title: isAr ? 'عملاء بيخلفوا المواعيد لأن محدش فكّرهم' : 'Customers no-showing because no one reminded them',
-      sub: isAr ? '20-30% من الحجوزات بتختفي من غير متابعة.' : '20-30% of bookings vanish without follow-up.',
+      title: isAr ? 'عملاء بيخلفوا المواعيد' : 'Customers no-showing on appointments',
+      sub: isAr ? '20-30% من الحجوزات بتختفي بدون تذكير.' : '20–30% of bookings vanish without a reminder.',
     },
     {
       icon: FileSpreadsheet,
-      title: isAr ? 'بتنقل البيانات على الإكسل بعد كل طلب' : 'Copying data into spreadsheets after every order',
-      sub: isAr ? 'ساعات من الكتابة. غلطة واحدة والتقرير كله بيتلخبط.' : 'Hours of typing. One error and the whole report is wrong.',
+      title: isAr ? 'بتنقل بيانات يدوي بعد كل طلب' : 'Copying data by hand after every order',
+      sub: isAr ? 'ساعات كتابة. غلطة واحدة والتقرير كله بيتلخبط.' : 'Hours of entry. One mistake and the report is wrong.',
     },
     {
       icon: Sunrise,
-      title: isAr ? 'بتبدأ كل يوم بمحاولة اللحاق بفوضى إمبارح' : "Starting every day catching up on yesterday's chaos",
-      sub: isAr ? 'الشغل الحقيقي للنمو ما بيبدأش غير الساعة 11.' : "Real growth work doesn't start until 11am.",
+      title: isAr ? 'بتبدأ كل يوم بلحاق فوضى إمبارح' : "Starting every morning cleaning up yesterday's mess",
+      sub: isAr ? 'الشغل الحقيقي مش بيبدأ غير الساعة 11.' : "Real growth work doesn't start until 11 AM.",
     },
     {
       icon: UserMinus,
-      title: isAr ? 'بتوظف ناس أكتر عشان يعملوا شغل المفروض السوفت وير يعمله' : 'Hiring more staff to handle work software should do',
-      sub: isAr ? 'مرتبات الأتمتة ممكن تستبدلها في شهر.' : 'Salaries that automation could replace in a month.',
+      title: isAr ? 'بتوظف ناس لشغل السوفت وير يعمله' : 'Hiring staff for tasks software should handle',
+      sub: isAr ? 'مرتبات الأتمتة ممكن تستبدلها في شهر.' : 'Salaries that automation replaces in a month.',
     },
   ];
 
   return (
-    <section className="py-16 lg:py-20">
-      <ScrollReveal>
-      <>
-      <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-3">
-          {isAr ? (
-            <>
-              ده بيحصل <span className="text-amber-500">معاك</span>؟
-            </>
-          ) : (
-            <>
-              Sound <span className="text-amber-500">familiar</span>?
-            </>
-          )}
-        </h2>
-        <p className="text-muted-foreground mb-8">
-          {isAr
-            ? 'معظم الأعمال النامية بتخسر من 3 لـ 5 ساعات كل يوم في مهام متكررة ما المفروض تعملها.'
-            : "Most growing businesses lose 3-5 hours a day to repetitive tasks they shouldn't be doing."}
-        </p>
-      </div>
+    <section className="py-20 lg:py-28">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-4">
-          {cards.map((card) => {
+        <ScrollReveal>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              {isAr ? (
+                <>ده بيحصل <span className="text-amber-500">معاك</span>؟</>
+              ) : (
+                <>Sound <span className="text-amber-500">familiar</span>?</>
+              )}
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              {isAr
+                ? 'معظم الأعمال النامية بتخسر 3–5 ساعات يومياً في مهام مفروض ما تعملهاش.'
+                : "Most growing businesses lose 3–5 hours a day to tasks they shouldn't be doing."}
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {cards.map((card, i) => {
             const Icon = card.icon;
             return (
-              <Card key={card.title} className="bg-card border-border">
-                <CardContent className="p-5 text-start">
-                  <Icon size={18} className="text-muted-foreground mb-3" />
-                  <p className="font-semibold text-foreground mb-1">{card.title}</p>
-                  <p className="text-sm italic text-muted-foreground">{card.sub}</p>
-                </CardContent>
-              </Card>
+              <ScrollReveal key={card.title} delay={i * 80}>
+                <div className="group relative rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:border-amber-500/30 hover:shadow-[0_0_30px_rgba(240,165,0,0.06)]">
+                  <div className="w-10 h-10 rounded-lg bg-red-500/10 dark:bg-red-500/[0.07] flex items-center justify-center mb-4">
+                    <Icon size={20} className="text-red-400" />
+                  </div>
+                  <p className="font-semibold text-foreground mb-1.5 leading-snug">{card.title}</p>
+                  <p className="text-sm text-muted-foreground italic">{card.sub}</p>
+                </div>
+              </ScrollReveal>
             );
           })}
         </div>
-        <p className="text-center text-lg text-foreground mt-8">
-          {isAr ? 'بنينا TwentyFour لأن كل مشكلة من دول ليها حل.' : 'We built TwentyFour because every one of these problems has a solution.'}
-        </p>
+
+        <ScrollReveal delay={500}>
+          <p className="text-center text-lg font-medium text-foreground mt-12">
+            {isAr ? 'بنينا TwentyFour لأن كل مشكلة من دول ليها حل.' : 'We built TwentyFour because every one of these has a fix.'}
+          </p>
+        </ScrollReveal>
       </div>
-      </>
-      </ScrollReveal>
     </section>
   );
 }
-

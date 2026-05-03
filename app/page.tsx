@@ -17,12 +17,16 @@ export default function LandingPage() {
     <>
       <Hero />
       <TrustStrip />
+      <div className="section-divider" />
       <ProblemSection />
+      <div className="section-divider" />
       <ProofSection />
       <SolutionSection />
+      <div className="section-divider" />
       <HowItWorks />
       <VerticalsSection />
       <UrgencyBanner />
+      <div className="section-divider" />
       <PricingTeaser />
       <FounderNote />
       <FinalCTA />
