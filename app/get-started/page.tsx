@@ -118,9 +118,10 @@ export default function GetStartedPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="flex flex-col items-center pt-8">
-        <div className="w-full max-w-3xl px-4 sm:px-6">
+      <main className="flex flex-col items-center">
+        <div className="w-full">
           {view === 'choice' && resumeSessionId ? (
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
             <ScrollReveal>
               <div className="mt-12 card-hover rounded-xl border border-border bg-card p-6 text-center space-y-4">
                 <h2 className="text-2xl font-bold text-foreground">
@@ -149,8 +150,9 @@ export default function GetStartedPage() {
                 </div>
               </div>
             </ScrollReveal>
+            </div>
           ) : view === 'intro' ? (
-            <section className="relative min-h-[78vh] flex items-center py-16 hero-gradient overflow-hidden">
+            <section className="relative w-full min-h-[78vh] flex items-center py-16 hero-gradient overflow-hidden">
               <ScrollReveal className="w-full">
                 <div className="w-full max-w-3xl mx-auto px-4 text-center space-y-8">
                   <div className="space-y-3">
@@ -244,19 +246,21 @@ export default function GetStartedPage() {
               </ScrollReveal>
             </section>
           ) : (
-            <ConsultationChat
-              isAuthenticated={isAuthenticated}
-              initialSessionId={resumeSessionId}
-              onComplete={(payload: ApiCompleteResponse) => {
-                setCompletePayload(payload);
-                const sid = payload.sessionId || payload.session_id || '';
-                if (sid) router.push(`${recommendationsAfterComplete}?session=${encodeURIComponent(sid)}`);
-              }}
-            />
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
+              <ConsultationChat
+                isAuthenticated={isAuthenticated}
+                initialSessionId={resumeSessionId}
+                onComplete={(payload: ApiCompleteResponse) => {
+                  setCompletePayload(payload);
+                  const sid = payload.sessionId || payload.session_id || '';
+                  if (sid) router.push(`${recommendationsAfterComplete}?session=${encodeURIComponent(sid)}`);
+                }}
+              />
+            </div>
           )}
 
           {completePayload && sessionId ? (
-            <div className="mt-6 space-y-4 text-center">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-6 space-y-4 text-center">
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <Link href="/book-call" className="btn-gold inline-flex px-7 py-2.5">
                   {labels.bookCall}
