@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar as CalendarIcon, Loader2, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
@@ -57,10 +58,12 @@ export function DiscoveryCallModal({
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
   }, [open, onClose]);
-
-  if (!open) return null;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -104,19 +107,23 @@ export function DiscoveryCallModal({
     }
   };
 
-  return (
+  if (!open) return null;
+  if (typeof window === 'undefined') return null;
+
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
     >
       <div
         className="relative w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl my-8"
+        style={{ background: 'var(--card)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors z-10"
           aria-label={isAr ? 'إغلاق' : 'Close'}
         >
           <X size={18} className="text-muted-foreground" />
@@ -158,8 +165,8 @@ export function DiscoveryCallModal({
               </h2>
               <p className="text-sm text-muted-foreground">
                 {isAr
-                  ? '20 دقيقة. بنشوف لو خدماتنا تناسب بيزنسك. لو لأ، هنقولك بصراحة.'
-                  : '20 minutes. We see if our services fit your business. If not, we tell you honestly.'}
+                  ? '20-30 دقيقة. بنشوف لو خدماتنا تناسب بيزنسك. لو لأ، هنقولك بصراحة.'
+                  : '20-30 minutes. We see if our services fit your business. If not, we tell you honestly.'}
               </p>
             </div>
 
@@ -289,4 +296,6 @@ export function DiscoveryCallModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

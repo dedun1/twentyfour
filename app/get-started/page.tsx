@@ -174,32 +174,40 @@ export default function GetStartedPage() {
                   </h1>
                   <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                     {isAr
-                      ? 'أنا مستشار TwentyFour. هسألك أسئلة سريعة عن بيزنسك، وأبنيلك خطة أتمتة شخصية بأرقام حقيقية. كل ده مجاني وبدون التزام.'
-                      : "I'm your TwentyFour consultant. I'll ask quick questions about your business and build you a personalized automation plan with real numbers. All free, no commitment."}
+                      ? 'أنا مستشار TwentyFour. اشرحلي بيزنسك بطريقتك، إزاي شغلك ماشي يومياً. وبعدين هبنيلك خطة أتمتة شخصية بأرقام حقيقية. كل ده مجاني وبدون التزام.'
+                      : "I'm your TwentyFour consultant. Tell me about your business in your own words, how things run day-to-day. Then I'll build you a personalized automation plan with real numbers. All free, no commitment."}
                   </p>
                   <div className="max-w-xl mx-auto rounded-xl border border-border bg-card/50 p-5 text-start space-y-3">
                     <p className="text-sm font-semibold text-foreground">
                       {isAr ? 'إيه اللي هيحصل بعد كده؟' : 'Here is what happens next:'}
                     </p>
-                    <ol className="space-y-2 text-sm text-muted-foreground">
+                    <ol className="space-y-2.5 text-sm text-muted-foreground">
                       <li className="flex gap-3">
                         <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">1</span>
-                        <span>{isAr ? 'تجاوب على الأسئلة في 5-10 دقائق' : 'Answer the questions, takes 5-10 minutes'}</span>
+                        <span>
+                          {isAr
+                            ? 'تشرحلنا بيزنسك وإزاي شغلك ماشي. كل ما تشاركنا تفاصيل أكتر، خطتك تطلع أدق. عادة بياخد 5-10 دقائق.'
+                            : 'Tell us about your business and how it operates. The more details you share, the more accurate your plan. Usually takes 5-10 minutes.'}
+                        </span>
                       </li>
                       <li className="flex gap-3">
                         <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">2</span>
-                        <span>{isAr ? 'تشوف خطة الأتمتة الشخصية بتاعتك بالأرقام' : 'See your personalized automation plan with the numbers'}</span>
+                        <span>{isAr ? 'تشوف خطة الأتمتة الشخصية بتاعتك بالأرقام' : 'See your personalized automation plan with real numbers'}</span>
                       </li>
                       <li className="flex gap-3">
                         <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">3</span>
-                        <span>{isAr ? 'لو الخطة عجبتك، تحجز مكالمة 20 دقيقة معانا' : 'If you like the plan, book a 20-minute call with us'}</span>
+                        <span>
+                          {isAr
+                            ? 'لو الخطة عجبتك، اضغط زر الحجز اللي في الخطة. هتحجز معانا مكالمة 20-30 دقيقة.'
+                            : 'If you like the plan, click the booking button inside the plan. You will schedule a 20-30 minute call with us.'}
+                        </span>
                       </li>
                       <li className="flex gap-3">
                         <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">4</span>
                         <span>
                           {isAr
-                            ? 'بنشوف سوا لو خدماتنا هتفيد بيزنسك. لو لأ، هنقولك بصراحة.'
-                            : 'We see together if our services would help your business. If not, we tell you honestly.'}
+                            ? 'في المكالمة بنشوف سوا لو خدماتنا هتفيد بيزنسك. لو لأ، هنقولك بصراحة.'
+                            : 'On the call, we see together if our services would help your business. If not, we tell you honestly.'}
                         </span>
                       </li>
                     </ol>
@@ -242,11 +250,6 @@ export default function GetStartedPage() {
                       );
                     })}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {isAr
-                      ? 'بنخد الوقت اللي تحتاجه. معظم الاستشارات بتاخد 5-10 دقائق. كل ما تشارك تفاصيل أكتر، خطتك بتطلع أدق.'
-                      : 'As long as it needs to. Most consultations take 5-10 minutes. The more details you share, the more accurate your plan.'}
-                  </p>
                   <p className="text-xs text-muted-foreground">
                     {isAr
                       ? 'اللي بتشاركه بيفضل بينا. بنستخدمه بس عشان نبنيلك توصياتك.'
