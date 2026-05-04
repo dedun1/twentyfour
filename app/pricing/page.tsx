@@ -32,12 +32,6 @@ export default function PricingPage() {
         : "Starter setups typically go live within 1-2 weeks. Pro plans take 2-3 weeks because we train the AI on your business and wire up multiple channels. Custom builds get a specific timeline during your consultation. We never quote a date we can't hit.",
     },
     {
-      q: isAr ? 'هل في استرجاع أموال؟' : 'Do you offer refunds?',
-      a: isAr
-        ? 'لو ما سلمناش اللي اتفقنا عليه في الاستشارة، بنرجعلك 100% من المبلغ بدون أسئلة.'
-        : 'If we do not deliver what we promised in the consultation, we refund 100%. No questions asked.',
-    },
-    {
       q: isAr ? 'لو محتاج حاجة مخصصة؟' : 'What if I need something custom?',
       a: isAr
         ? 'ده بالضبط دور باقة Custom. أفضل شغلنا بيكون مخصص حسب البيزنس.'

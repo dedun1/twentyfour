@@ -34,34 +34,59 @@ export async function POST(request: Request) {
       notes ? `Notes: ${notes}` : null,
     ].filter(Boolean);
 
-    const bn = typeof business_name === 'string' ? business_name.trim() : '';
-    if (bn) messageParts.push(`Business: ${bn}`);
+    const messageText = messageParts.join('\n');
+    const cleanedEmail = email?.trim() || null;
+    const emailForInsert = cleanedEmail || 'pending@twentyfour.local';
+    const cleanedBusinessName = business_name?.trim() || null;
 
-    const emailTrim = typeof email === 'string' ? email.trim() : '';
-    const safeEmail = emailTrim.length > 0 ? emailTrim : 'pending@twentyfour.local';
-
-    const baseRow = {
+    const fullPayload: Record<string, unknown> = {
       full_name: full_name.trim(),
-      email: safeEmail,
+      email: emailForInsert,
       phone: phone.trim(),
       whatsapp: phone.trim(),
-      message: messageParts.join('\n'),
+      business_name: cleanedBusinessName,
+      message: messageText,
       source: 'discovery_call',
+      status: 'new',
     };
 
-    let { error } = await supabase.from('contact_requests').insert({
-      ...baseRow,
-      business_name: bn || null,
-      status: 'new',
-    });
+    let { error } = await supabase.from('contact_requests').insert(fullPayload);
 
     if (error) {
-      ({ error } = await supabase.from('contact_requests').insert(baseRow));
-    }
+      console.error('Discovery call insert error (attempt 1):', JSON.stringify(error, null, 2));
 
-    if (error) {
-      console.error('Discovery call insert error:', error);
-      return NextResponse.json({ error: 'Failed to save request' }, { status: 500 });
+      const fallback1: Record<string, unknown> = {
+        full_name: full_name.trim(),
+        email: emailForInsert,
+        phone: phone.trim(),
+        whatsapp: phone.trim(),
+        business_name: cleanedBusinessName,
+        message: messageText,
+        source: 'discovery_call',
+      };
+      const result2 = await supabase.from('contact_requests').insert(fallback1);
+
+      if (result2.error) {
+        console.error('Discovery call insert error (attempt 2):', JSON.stringify(result2.error, null, 2));
+
+        const fallback2: Record<string, unknown> = {
+          full_name: full_name.trim(),
+          whatsapp: phone.trim(),
+          phone: phone.trim(),
+          email: emailForInsert,
+          message: `[Discovery Call Request]\n${messageText}\nBusiness: ${cleanedBusinessName ?? 'n/a'}`,
+        };
+        const result3 = await supabase.from('contact_requests').insert(fallback2);
+
+        if (result3.error) {
+          console.error('Discovery call insert error (attempt 3, minimal):', JSON.stringify(result3.error, null, 2));
+          const msg =
+            result3.error && typeof result3.error === 'object' && 'message' in result3.error
+              ? String((result3.error as { message: string }).message)
+              : 'Unknown error';
+          return NextResponse.json({ error: 'Failed to save request', details: msg }, { status: 500 });
+        }
+      }
     }
 
     return NextResponse.json({ success: true });
