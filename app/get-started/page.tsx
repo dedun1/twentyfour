@@ -122,34 +122,34 @@ export default function GetStartedPage() {
         <div className="w-full">
           {view === 'choice' && resumeSessionId ? (
             <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
-            <ScrollReveal>
-              <div className="mt-12 card-hover rounded-xl border border-border bg-card p-6 text-center space-y-4">
-                <h2 className="text-2xl font-bold text-foreground">
-                  {isAr ? 'كمل استشارتك السابقة' : 'Continue your last consultation'}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {isAr ? 'عندك استشارة تقدر تكملها من اللي وقفت فيه.' : "You have a consultation you can pick up where you left off."}
-                </p>
-                <div className="flex gap-3 justify-center flex-wrap">
-                  <button
-                    onClick={() => setView('chat')}
-                    className="btn-gold px-6 py-2.5"
-                  >
-                    {isAr ? 'كمل الشات السابق' : 'Continue previous chat'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setResumeSessionId(null);
-                      if (!isAuthenticated) clearStoredConsultationSessionId();
-                      setView('chat');
-                    }}
-                    className="btn-outline px-6 py-2.5"
-                  >
-                    {isAr ? 'ابدأ من جديد' : 'Start fresh'}
-                  </button>
+              <ScrollReveal>
+                <div className="mt-12 card-hover rounded-xl border border-border bg-card p-6 text-center space-y-4">
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {isAr ? 'كمل استشارتك السابقة' : 'Continue your last consultation'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {isAr ? 'عندك استشارة تقدر تكملها من اللي وقفت فيه.' : "You have a consultation you can pick up where you left off."}
+                  </p>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    <button
+                      onClick={() => setView('chat')}
+                      className="btn-gold px-6 py-2.5"
+                    >
+                      {isAr ? 'كمل الشات السابق' : 'Continue previous chat'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setResumeSessionId(null);
+                        if (!isAuthenticated) clearStoredConsultationSessionId();
+                        setView('chat');
+                      }}
+                      className="btn-outline px-6 py-2.5"
+                    >
+                      {isAr ? 'ابدأ من جديد' : 'Start fresh'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </ScrollReveal>
+              </ScrollReveal>
             </div>
           ) : view === 'intro' ? (
             <section className="relative w-full min-h-[78vh] flex items-center py-16 hero-gradient overflow-hidden">
