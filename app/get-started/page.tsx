@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Brain, FileBarChart, MessageSquare, Zap } from 'lucide-react';
+import { Brain, Calendar, FileBarChart, MessageSquare, Zap } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ConsultationChat, type ApiCompleteResponse } from '@/components/onboarding/ConsultationChat';
 import { createClient } from '@/lib/supabase/client';
 import { readStoredConsultationSessionId, clearStoredConsultationSessionId } from '@/lib/consultation-storage';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { DiscoveryCallModal } from '@/components/booking/DiscoveryCallModal';
 
 function completionCtasLabel(lang: 'ar' | 'en') {
   if (lang === 'ar') {
@@ -36,6 +37,7 @@ export default function GetStartedPage() {
   const [completePayload, setCompletePayload] = useState<ApiCompleteResponse | null>(null);
   const [view, setView] = useState<'intro' | 'choice' | 'chat'>('intro');
   const [resumeSessionId, setResumeSessionId] = useState<string | null>(null);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -172,9 +174,36 @@ export default function GetStartedPage() {
                   </h1>
                   <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                     {isAr
-                      ? 'أنا مستشار TwentyFour. هسألك عن إزاي شغلك ماشي دلوقتي، إيه اللي بياكل وقت فريقك، وإيه أهدافك. وبعدين هبنيلك خطة أتمتة شخصية بأرقام حقيقية، مش نصايح عامة.'
-                      : "I'm your TwentyFour consultant. I'll ask about how your business runs today, what's eating your team's time, and what your goals are. Then I'll build you a personalized automation plan with real numbers, not generic advice."}
+                      ? 'أنا مستشار TwentyFour. هسألك أسئلة سريعة عن بيزنسك، وأبنيلك خطة أتمتة شخصية بأرقام حقيقية. كل ده مجاني وبدون التزام.'
+                      : "I'm your TwentyFour consultant. I'll ask quick questions about your business and build you a personalized automation plan with real numbers. All free, no commitment."}
                   </p>
+                  <div className="max-w-xl mx-auto rounded-xl border border-border bg-card/50 p-5 text-start space-y-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      {isAr ? 'إيه اللي هيحصل بعد كده؟' : 'Here is what happens next:'}
+                    </p>
+                    <ol className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex gap-3">
+                        <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">1</span>
+                        <span>{isAr ? 'تجاوب على الأسئلة في 5-10 دقائق' : 'Answer the questions, takes 5-10 minutes'}</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">2</span>
+                        <span>{isAr ? 'تشوف خطة الأتمتة الشخصية بتاعتك بالأرقام' : 'See your personalized automation plan with the numbers'}</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">3</span>
+                        <span>{isAr ? 'لو الخطة عجبتك، تحجز مكالمة 20 دقيقة معانا' : 'If you like the plan, book a 20-minute call with us'}</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-none w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">4</span>
+                        <span>
+                          {isAr
+                            ? 'بنشوف سوا لو خدماتنا هتفيد بيزنسك. لو لأ، هنقولك بصراحة.'
+                            : 'We see together if our services would help your business. If not, we tell you honestly.'}
+                        </span>
+                      </li>
+                    </ol>
+                  </div>
                   <div className="grid md:grid-cols-3 gap-4 text-start">
                     {[
                       {
@@ -260,30 +289,58 @@ export default function GetStartedPage() {
           )}
 
           {completePayload && sessionId ? (
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-6 space-y-4 text-center">
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <Link href="/book-call" className="btn-gold inline-flex px-7 py-2.5">
-                  {labels.bookCall}
-                </Link>
-                <Link
-                  href={`/register?session=${encodeURIComponent(sessionId)}`}
-                  className="btn-outline inline-flex px-7 py-2.5"
-                >
-                  {labels.createAccount}
-                </Link>
-              </div>
-              <div>
-                <Link
-                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-                  href={`${recommendationsAfterComplete}?session=${encodeURIComponent(sessionId)}`}
-                >
-                  {labels.seeRecommendations}
-                </Link>
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-12 mb-12">
+              <div className="rounded-2xl border-2 border-amber-500/30 bg-card p-8 text-center space-y-5 hero-gradient">
+                <div className="mx-auto w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center">
+                  <Calendar className="size-6 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+                    {isAr ? (
+                      <>عايز <span className="text-amber-500">تكلم</span> فريقنا؟</>
+                    ) : (
+                      <>Want to <span className="text-amber-500">talk</span> to our team?</>
+                    )}
+                  </h2>
+                  <p className="text-muted-foreground max-w-lg mx-auto">
+                    {isAr
+                      ? 'احجز مكالمة إعداد مجانية. هنراجع خطتك معاك ونحدد جدول التشغيل.'
+                      : 'Book a free setup call. We will walk through your plan together and lock in your go-live timeline.'}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setBookingOpen(true)}
+                    className="btn-gold inline-flex px-7 py-2.5"
+                  >
+                    {labels.bookCall}
+                  </button>
+                  <Link
+                    href={`/register?session=${encodeURIComponent(sessionId)}`}
+                    className="btn-outline inline-flex px-7 py-2.5"
+                  >
+                    {labels.createAccount}
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                    href={`${recommendationsAfterComplete}?session=${encodeURIComponent(sessionId)}`}
+                  >
+                    {labels.seeRecommendations}
+                  </Link>
+                </div>
               </div>
             </div>
           ) : null}
         </div>
       </main>
+      <DiscoveryCallModal
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        sessionId={sessionId}
+      />
     </div>
   );
 }

@@ -1,22 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import { Calendar } from 'lucide-react';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import { DiscoveryCallModal } from '@/components/booking/DiscoveryCallModal';
 
-/** Floating CTA; href is a placeholder until a real booking URL is configured. */
 export function BookCallButton() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const [open, setOpen] = useState(false);
+
   return (
     <>
-      {/* TODO: replace /book-call with real Calendly/booking URL */}
-      <a
-        href="/book-call"
-        aria-label="Book a call"
-        className="fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 bg-amber-500 text-black"
-        style={{
-          boxShadow: '0 10px 30px rgba(240,165,0,0.35)',
-        }}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 z-40 btn-gold rounded-full px-5 py-3 text-sm shadow-lg glow-gold flex items-center gap-2"
+        aria-label={isAr ? 'احجز مكالمة' : 'Book a call'}
       >
-        <Calendar size={24} />
-      </a>
+        <Calendar size={16} />
+        <span className="hidden sm:inline">{isAr ? 'احجز مكالمة' : 'Book a Call'}</span>
+      </button>
+      <DiscoveryCallModal open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

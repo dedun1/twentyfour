@@ -69,7 +69,7 @@ export function Footer() {
             © {new Date().getFullYear()} TwentyFour. {t.footer.allRights}
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/book-call" className="text-xs text-muted-foreground hover:text-amber-500 transition-colors">
+            <Link href="/get-started" className="text-xs text-muted-foreground hover:text-amber-500 transition-colors">
               Book a call
             </Link>
             <span className="text-xs text-muted-foreground">Made with ❤️ for businesses</span>
