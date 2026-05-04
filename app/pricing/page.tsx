@@ -66,20 +66,22 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="pt-8 lg:pt-12 max-w-7xl mx-auto px-6 lg:px-8 pb-16">
-        <ScrollReveal>
-          <section className="text-center mb-12 hero-gradient py-12 rounded-2xl">
-            <h1 className="text-4xl font-bold text-foreground mb-3">
-              {isAr ? (
-                <>أسعار شهرية <span className="text-amber-500">بسيطة</span>. ألغي في أي وقت.</>
-              ) : (
-                <>Simple <span className="text-amber-500">monthly</span> pricing. Cancel anytime.</>
-              )}
-            </h1>
-            <p className="text-muted-foreground">
-              {isAr ? 'كل الباقات بتشمل أونبوردنج شخصي، دعم مستمر، وتعديلات غير محدودة.' : 'All plans include personal onboarding, ongoing support, and unlimited adjustments.'}
-            </p>
-          </section>
-        </ScrollReveal>
+        <section className="relative -mx-6 lg:-mx-8 mb-12 py-20 hero-gradient overflow-hidden">
+          <ScrollReveal>
+            <div className="text-center max-w-4xl mx-auto px-6 lg:px-8">
+              <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-3">
+                {isAr ? (
+                  <>أسعار شهرية <span className="text-amber-500">بسيطة</span>. ألغي في أي وقت.</>
+                ) : (
+                  <>Simple <span className="text-amber-500">monthly</span> pricing. Cancel anytime.</>
+                )}
+              </h1>
+              <p className="text-muted-foreground">
+                {isAr ? 'كل الباقات بتشمل أونبوردنج شخصي، دعم مستمر، وتعديلات غير محدودة.' : 'All plans include personal onboarding, ongoing support, and unlimited adjustments.'}
+              </p>
+            </div>
+          </ScrollReveal>
+        </section>
 
         <section className="grid lg:grid-cols-3 gap-5 mb-12">
           {/* Starter */}
