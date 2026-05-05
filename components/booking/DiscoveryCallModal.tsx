@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar as CalendarIcon, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Loader2, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface Props {
@@ -14,6 +14,25 @@ interface Props {
   prefilledPhone?: string;
   prefilledBusiness?: string;
 }
+
+type PrefillData = {
+  email?: string | null;
+  phone?: string | null;
+  business_name?: string | null;
+  business_type?: string | null;
+  city?: string | null;
+  team_size?: string | null;
+  years_in_business?: string | null;
+  daily_operations?: string | null;
+  client_acquisition?: string | null;
+  current_tools?: string | null;
+  daily_volume?: string | null;
+  time_wasters?: string | null;
+  recurring_problems?: string | null;
+  one_thing_to_fix?: string | null;
+  automation_goals?: string | null;
+  timeline?: string | null;
+};
 
 export function DiscoveryCallModal({
   open,
@@ -34,9 +53,23 @@ export function DiscoveryCallModal({
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [city, setCity] = useState('');
+  const [teamSize, setTeamSize] = useState('');
+  const [yearsInBusiness, setYearsInBusiness] = useState('');
+  const [dailyOperations, setDailyOperations] = useState('');
+  const [clientAcquisition, setClientAcquisition] = useState('');
+  const [currentTools, setCurrentTools] = useState('');
+  const [dailyVolume, setDailyVolume] = useState('');
+  const [timeWasters, setTimeWasters] = useState('');
+  const [recurringProblems, setRecurringProblems] = useState('');
+  const [oneThingToFix, setOneThingToFix] = useState('');
+  const [automationGoals, setAutomationGoals] = useState('');
+  const [timeline, setTimeline] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -47,10 +80,62 @@ export function DiscoveryCallModal({
       setDate('');
       setTime('');
       setNotes('');
+      setBusinessType('');
+      setCity('');
+      setTeamSize('');
+      setYearsInBusiness('');
+      setDailyOperations('');
+      setClientAcquisition('');
+      setCurrentTools('');
+      setDailyVolume('');
+      setTimeWasters('');
+      setRecurringProblems('');
+      setOneThingToFix('');
+      setAutomationGoals('');
+      setTimeline('');
       setSuccess(false);
       setError(null);
+      setDetailsOpen(false);
     }
   }, [open, prefilledName, prefilledEmail, prefilledPhone, prefilledBusiness]);
+
+  useEffect(() => {
+    if (!open || !sessionId) return;
+
+    let cancelled = false;
+    const fetchPrefill = async () => {
+      try {
+        const res = await fetch(`/api/onboarding/session/${encodeURIComponent(sessionId)}/prefill`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || cancelled) return;
+
+        const p = (data.prefill ?? {}) as PrefillData;
+        setEmail((prev) => prev || p.email || '');
+        setPhone((prev) => prev || p.phone || '');
+        setBusiness((prev) => prev || p.business_name || '');
+        setBusinessType((prev) => prev || p.business_type || '');
+        setCity((prev) => prev || p.city || '');
+        setTeamSize((prev) => prev || p.team_size || '');
+        setYearsInBusiness((prev) => prev || p.years_in_business || '');
+        setDailyOperations((prev) => prev || p.daily_operations || '');
+        setClientAcquisition((prev) => prev || p.client_acquisition || '');
+        setCurrentTools((prev) => prev || p.current_tools || '');
+        setDailyVolume((prev) => prev || p.daily_volume || '');
+        setTimeWasters((prev) => prev || p.time_wasters || '');
+        setRecurringProblems((prev) => prev || p.recurring_problems || '');
+        setOneThingToFix((prev) => prev || p.one_thing_to_fix || '');
+        setAutomationGoals((prev) => prev || p.automation_goals || '');
+        setTimeline((prev) => prev || p.timeline || '');
+      } catch {
+        // Silent fallback, manual entry still works.
+      }
+    };
+
+    void fetchPrefill();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, sessionId]);
 
   useEffect(() => {
     if (!open) return;
@@ -94,6 +179,19 @@ export function DiscoveryCallModal({
           preferred_time: time,
           notes: notes.trim() || null,
           session_id: sessionId || null,
+          business_type: businessType.trim() || null,
+          city: city.trim() || null,
+          team_size: teamSize.trim() || null,
+          years_in_business: yearsInBusiness.trim() || null,
+          daily_operations: dailyOperations.trim() || null,
+          client_acquisition: clientAcquisition.trim() || null,
+          current_tools: currentTools.trim() || null,
+          daily_volume: dailyVolume.trim() || null,
+          time_wasters: timeWasters.trim() || null,
+          recurring_problems: recurringProblems.trim() || null,
+          one_thing_to_fix: oneThingToFix.trim() || null,
+          automation_goals: automationGoals.trim() || null,
+          timeline: timeline.trim() || null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -104,7 +202,7 @@ export function DiscoveryCallModal({
       }
       setError(
         (typeof data?.error === 'string' && data.error) ||
-        (isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Please try again.')
+          (isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Please try again.')
       );
     } catch {
       setError(isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Please try again.');
@@ -148,11 +246,7 @@ export function DiscoveryCallModal({
                 ? 'سنتواصل معك خلال 24 ساعة لتأكيد مكالمة الاكتشاف.'
                 : "We'll be in touch within 24 hours to confirm your discovery call."}
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-gold w-full py-3 text-base"
-            >
+            <button type="button" onClick={onClose} className="btn-gold w-full py-3 text-base">
               {isAr ? 'إغلاق' : 'Close'}
             </button>
           </div>
@@ -164,9 +258,13 @@ export function DiscoveryCallModal({
               </div>
               <h2 className="text-2xl font-bold text-foreground">
                 {isAr ? (
-                  <>احجز <span className="text-amber-500">مكالمتك</span></>
+                  <>
+                    احجز <span className="text-amber-500">مكالمتك</span>
+                  </>
                 ) : (
-                  <>Book Your <span className="text-amber-500">Discovery</span> Call</>
+                  <>
+                    Book Your <span className="text-amber-500">Discovery</span> Call
+                  </>
                 )}
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -231,6 +329,84 @@ export function DiscoveryCallModal({
                 />
               </div>
 
+              <details
+                className="rounded-xl border border-border bg-card/40 p-3"
+                open={detailsOpen}
+                onToggle={(e) => setDetailsOpen((e.currentTarget as HTMLDetailsElement).open)}
+              >
+                <summary className="cursor-pointer select-none flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {isAr ? 'تفاصيل البيزنس' : 'Business details'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isAr
+                        ? 'راجع اللي اتسحب من المحادثة وعدل أي حاجة مش دقيقة.'
+                        : "Verify what we captured from your conversation. Edit anything that's wrong."}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`mt-0.5 text-muted-foreground transition-transform ${detailsOpen ? 'rotate-180' : ''}`}
+                  />
+                </summary>
+
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Business type</label>
+                    <input value={businessType} onChange={(e) => setBusinessType(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">City</label>
+                    <input value={city} onChange={(e) => setCity(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Team size</label>
+                    <input value={teamSize} onChange={(e) => setTeamSize(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Years in business</label>
+                    <input value={yearsInBusiness} onChange={(e) => setYearsInBusiness(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Daily operations</label>
+                    <textarea rows={2} value={dailyOperations} onChange={(e) => setDailyOperations(e.target.value)} className="input-base resize-y w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Client acquisition</label>
+                    <input value={clientAcquisition} onChange={(e) => setClientAcquisition(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Current tools</label>
+                    <input value={currentTools} onChange={(e) => setCurrentTools(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Daily volume</label>
+                    <input value={dailyVolume} onChange={(e) => setDailyVolume(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Time wasters</label>
+                    <textarea rows={2} value={timeWasters} onChange={(e) => setTimeWasters(e.target.value)} className="input-base resize-y w-full" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Recurring problems</label>
+                    <textarea rows={2} value={recurringProblems} onChange={(e) => setRecurringProblems(e.target.value)} className="input-base resize-y w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">One thing to fix</label>
+                    <input value={oneThingToFix} onChange={(e) => setOneThingToFix(e.target.value)} className="input-base w-full" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Automation goals</label>
+                    <textarea rows={2} value={automationGoals} onChange={(e) => setAutomationGoals(e.target.value)} className="input-base resize-y w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Timeline</label>
+                    <input value={timeline} onChange={(e) => setTimeline(e.target.value)} className="input-base w-full" />
+                  </div>
+                </div>
+              </details>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -273,9 +449,7 @@ export function DiscoveryCallModal({
               </div>
             </div>
 
-            {error ? (
-              <p className="text-sm text-red-500">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
             <button
               type="submit"
@@ -300,6 +474,14 @@ export function DiscoveryCallModal({
           </form>
         )}
       </div>
+      <style jsx global>{`
+        details > summary {
+          list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 
