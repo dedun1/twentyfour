@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Brain, Calendar, FileBarChart, MessageSquare, Zap } from 'lucide-react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
@@ -29,7 +28,6 @@ function completionCtasLabel(lang: 'ar' | 'en') {
 export default function GetStartedPage() {
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
-  const router = useRouter();
   const labels = completionCtasLabel(lang);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -284,8 +282,6 @@ export default function GetStartedPage() {
                 initialSessionId={resumeSessionId}
                 onComplete={(payload: ApiCompleteResponse) => {
                   setCompletePayload(payload);
-                  const sid = payload.sessionId || payload.session_id || '';
-                  if (sid) router.push(`${recommendationsAfterComplete}?session=${encodeURIComponent(sid)}`);
                 }}
               />
             </div>
