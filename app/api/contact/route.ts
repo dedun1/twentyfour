@@ -5,14 +5,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      full_name, email, phone, whatsapp,
+      full_name, email, phone, whatsapp, whatsapp_number,
       business_name, business_type, city, team_size, years_in_business,
       daily_operations, client_acquisition, current_tools, daily_volume,
       time_wasters, recurring_problems, one_thing_to_fix,
       automation_goals, timeline, source,
     } = body;
 
-    if (!full_name || !whatsapp) {
+    const resolvedPhone = phone || whatsapp || whatsapp_number;
+
+    if (!full_name || !resolvedPhone) {
       return NextResponse.json({ error: 'Name and best phone number (messaging field) are required' }, { status: 400 });
     }
 
@@ -24,8 +26,7 @@ export async function POST(request: Request) {
     const { error } = await supabase.from('contact_requests').insert({
       full_name,
       email: email || null,
-      phone: phone || null,
-      whatsapp,
+      phone: resolvedPhone,
       business_name: business_name || null,
       business_type: business_type || null,
       city: city || null,
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       one_thing_to_fix: one_thing_to_fix || null,
       automation_goals: automation_goals || null,
       timeline: timeline || null,
-      source: source || null,
+      source: source || 'contact_form',
     });
 
     if (error) {

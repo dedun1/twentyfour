@@ -9,6 +9,7 @@ import { HowItWorks } from '@/components/landing/HowItWorks';
 import { VerticalsSection } from '@/components/landing/VerticalsSection';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { PricingTeaser } from '@/components/landing/PricingTeaser';
+import { ValuesSection } from '@/components/landing/ValuesSection';
 import { FounderNote } from '@/components/landing/FounderNote';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 
@@ -28,6 +29,7 @@ export default function LandingPage() {
       <UrgencyBanner />
       <div className="section-divider" />
       <PricingTeaser />
+      <ValuesSection />
       <FounderNote />
       <FinalCTA />
       <Footer />

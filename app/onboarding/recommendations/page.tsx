@@ -16,8 +16,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { COOKIE_NAME } from '@/lib/onboarding-session';
 import { PipelineAutoRefresh } from './PipelineAutoRefresh';
+import { BookCallTrigger } from './BookCallTrigger';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 type RawRecommendation = {
@@ -278,9 +278,15 @@ export default async function OnboardingRecommendationsPage({
             <p className="text-sm font-semibold text-amber-800">
               ${monthlySavings}/month potential savings
             </p>
-            <Button size="sm" className="bg-amber-500 text-black hover:bg-amber-400">
-              Book my call →
-            </Button>
+            <BookCallTrigger
+              sessionId={session.id}
+              prefilledEmail={session.captured_email ?? ''}
+              prefilledName=""
+              prefilledPhone={session.captured_phone ?? ''}
+              prefilledBusiness={session.captured_business_name ?? ''}
+              className="text-sm shrink-0 h-8 px-3"
+              label="Book my call →"
+            />
           </div>
         </section>
       ) : null}
@@ -622,9 +628,15 @@ export default async function OnboardingRecommendationsPage({
             <p className="max-w-3xl mx-auto text-white/90">
               30-minute discovery call. We confirm the plan, lock in your timeline, and answer every question. No payment until you&apos;re 100% sure.
             </p>
-            <Button className="bg-white text-amber-700 hover:bg-amber-50 px-8 py-6 text-lg font-semibold">
-              Book my discovery call →
-            </Button>
+            <BookCallTrigger
+              sessionId={session.id}
+              prefilledEmail={session.captured_email ?? ''}
+              prefilledName=""
+              prefilledPhone={session.captured_phone ?? ''}
+              prefilledBusiness={session.captured_business_name ?? ''}
+              variant="on-amber"
+              label="Book my discovery call →"
+            />
           </CardContent>
         </Card>
         <p className="text-center text-sm text-muted-foreground">

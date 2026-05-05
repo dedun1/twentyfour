@@ -13,8 +13,7 @@ export function PipelineAutoRefresh({ enabled }: { enabled: boolean }) {
   const statusText = useMemo(() => {
     const elapsedSeconds = pollCount * 3;
     if (elapsedSeconds >= 60) {
-      // TODO: replace with real support email if different
-      return 'This is taking longer than expected. Try refreshing, or email us at hello@twentyfour.com.';
+      return 'This is taking longer than expected. Try refreshing the page.';
     }
     if (elapsedSeconds >= 45) {
       return 'Almost there...';
@@ -39,8 +38,7 @@ export function PipelineAutoRefresh({ enabled }: { enabled: boolean }) {
       setPollCount((prev) => {
         if (prev >= MAX_POLL_ATTEMPTS) {
           window.clearInterval(timer);
-          // TODO: replace with real support email if different
-          setError('Your plan is taking longer than expected. Please refresh the page or email hello@twentyfour.com.');
+          setError('Your plan is taking longer than expected. Please refresh the page or email us at hello@twentyfour.agency.');
           return prev;
         }
         return prev + 1;

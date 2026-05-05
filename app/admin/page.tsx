@@ -1371,7 +1371,7 @@ export default function AdminPage() {
       email: contact.email ?? '',
       business_name: contact.business_name ?? '',
       contact_email: contact.email ?? '',
-      contact_phone: contact.phone ?? contact.whatsapp ?? '',
+      contact_phone: contact.phone ?? '',
       city: contact.city ?? '',
     });
     await markContactStatus(contact.id, 'converted');
@@ -1971,7 +1971,7 @@ export default function AdminPage() {
                       <p className="text-muted-foreground">{contact.business_name || '-'}</p>
                     </div>
                     <p className="text-sm text-muted-foreground">{contact.email || '-'}</p>
-                    <p className="text-sm text-muted-foreground">{contact.phone || contact.whatsapp || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{contact.phone || '-'}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" onClick={() => markContactStatus(contact.id, 'contacted')}>{ui.markContacted}</Button>

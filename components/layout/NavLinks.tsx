@@ -17,7 +17,6 @@ export function NavLinks({ onClickItem }: NavLinksProps) {
 
   const links = [
     { href: '/', label: t.nav.home },
-    { href: '/about', label: t.nav.about },
     { href: '/pricing', label: t.nav.pricing },
     { href: '/get-started', label: lang === 'ar' ? 'ابدأ الآن' : 'Get Started' },
   ];
