@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import Link from 'next/link';
-import { History, Menu, Plus, Send, Trash2, Zap } from 'lucide-react';
+import { History, Loader2, Menu, Plus, Send, Trash2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
@@ -781,12 +781,36 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
 
           {isComplete && !planButtonClicked ? (
             <div className="px-4 pb-2">
+              {pipelineStatus === 'running' ? (
+                <div className="mb-3 flex justify-start">
+                  <div className="max-w-[80%]">
+                    <div className="flex items-start gap-2">
+                      <div className="size-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-1">
+                        <Zap className="size-4" />
+                      </div>
+                      <div className="rounded-2xl rounded-tl-sm px-5 py-3 bg-amber-50 dark:bg-amber-950/30 text-foreground border border-amber-200/50 dark:border-amber-900/40 space-y-2">
+                        <p className="text-sm">Thanks for sharing everything.</p>
+                        <p className="text-sm">Building your personalized plan now...</p>
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="size-4 text-amber-500 animate-spin" />
+                          <span className="text-xs text-muted-foreground">
+                            Analyzing your business and matching automation patterns
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground ms-10 mt-1">
+                      {lang === 'ar' ? 'مستشار TwentyFour' : 'TwentyFour Consultant'}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <button
                 type="button"
                 className={`w-full rounded-xl py-3 font-semibold transition flex items-center justify-center gap-2 ${
                   pipelineStatus === 'complete' || pipelineStatus === 'error'
                     ? 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
-                    : 'bg-amber-500/40 text-white cursor-not-allowed'
+                    : 'bg-amber-500 text-white opacity-60 cursor-not-allowed'
                 }`}
                 disabled={pipelineStatus !== 'complete' && pipelineStatus !== 'error'}
                 onClick={() => {
@@ -797,19 +821,13 @@ export function ConsultationChat({ onComplete, isAuthenticated, initialSessionId
                 }}
               >
                 {pipelineStatus === 'running' ? (
-                  <>
-                    <span className="inline-block size-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                    <span>Building your plan...</span>
-                  </>
+                  <span>Preparing your plan...</span>
                 ) : pipelineStatus === 'error' ? (
                   <span>View my plan anyway →</span>
                 ) : (
                   <span>View My Plan →</span>
                 )}
               </button>
-              {pipelineStatus === 'running' ? (
-                <p className="mt-1 text-center text-[11px] text-muted-foreground">Usually takes 15-30 seconds</p>
-              ) : null}
             </div>
           ) : null}
 

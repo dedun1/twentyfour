@@ -13,6 +13,8 @@ import {
 import {
   type ClaudeCapture,
   CONSULTANT_SYSTEM_PROMPT,
+  CONSULTANT_CONTACT_RULES_APPENDIX,
+  getMissingContactFields,
   isRecord,
   coerceCapture as importedCoerceCapture,
   normalizeRecommendations as importedNormalizeRecommendations,
@@ -1093,7 +1095,12 @@ Detected industry: ${sessionRow.detected_industry || 'not yet classified'}
 Buyer profile: ${sessionRow.buyer_profile || 'not yet profiled'}
 Current conversation stage: ${sessionRow.conversation_stage || 'rapport'}
 Message count: ${messagesForClaude.length}`;
-    const system = `${contextLine}\n\n${CONSULTANT_SYSTEM_PROMPT}\n\n${contextBlock}`;
+    const missingContact = getMissingContactFields({
+      captured_email: sessionRow.captured_email,
+      captured_phone: sessionRow.captured_phone,
+    });
+    console.log('Missing contact fields:', missingContact);
+    const system = `${contextLine}\n\n${CONSULTANT_SYSTEM_PROMPT}\n\n${CONSULTANT_CONTACT_RULES_APPENDIX}\n${contextBlock}`;
 
     const extractedText = await callClaude(messagesForClaude, system);
     console.log('[DEBUG] Raw extracted text (first 300 chars):', extractedText.substring(0, 300));
