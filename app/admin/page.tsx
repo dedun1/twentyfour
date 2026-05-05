@@ -1982,16 +1982,16 @@ export default function AdminPage() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
-                    <p><span className="font-medium text-foreground">Business Type:</span> {contact.business_type || '-'}</p>
+                    <p><span className="font-medium text-foreground">Business type:</span> {contact.business_type || '-'}</p>
                     <p><span className="font-medium text-foreground">City:</span> {contact.city || '-'}</p>
-                    <p><span className="font-medium text-foreground">Team Size:</span> {contact.team_size || '-'}</p>
+                    <p><span className="font-medium text-foreground">Team size:</span> {contact.team_size || '-'}</p>
                     <p><span className="font-medium text-foreground">Timeline:</span> {contact.timeline || '-'}</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
-                    <p><span className="font-medium text-foreground">Daily Operations:</span> {contact.daily_operations || '-'}</p>
-                    <p><span className="font-medium text-foreground">Current Tools:</span> {contact.current_tools || '-'}</p>
-                    <p><span className="font-medium text-foreground">Recurring Problems:</span> {contact.recurring_problems || '-'}</p>
-                    <p><span className="font-medium text-foreground">Automation Goals:</span> {contact.automation_goals || '-'}</p>
+                    <p><span className="font-medium text-foreground">Daily operations:</span> {contact.daily_operations || '-'}</p>
+                    <p><span className="font-medium text-foreground">Current tools:</span> {contact.current_tools || '-'}</p>
+                    <p><span className="font-medium text-foreground">Recurring problems:</span> {contact.recurring_problems || '-'}</p>
+                    <p><span className="font-medium text-foreground">Automation goals:</span> {contact.automation_goals || '-'}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
