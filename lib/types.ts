@@ -19,7 +19,7 @@ export interface Profile {
 export interface ClientRecord {
   id: string;
   business_name?: string;
-  owner_whatsapp?: string;
+  owner_phone?: string;
   features: FeatureKey[];
   subscription_status: SubscriptionStatus;
   setup_fee?: number;
@@ -45,7 +45,7 @@ export interface Appointment {
   time: string;
   status: AppointmentStatus;
   notes?: string;
-  send_whatsapp?: boolean;
+  send_sms?: boolean;
   created_at: string;
 }
 
@@ -152,7 +152,7 @@ export interface AdminClient {
   email: string;
   phone?: string;
   business_name?: string;
-  owner_whatsapp?: string;
+  owner_phone?: string;
   features?: FeatureKey[];
   subscription_status?: SubscriptionStatus;
   setup_fee?: number;
@@ -197,7 +197,6 @@ export interface ContactRequest {
   full_name: string;
   email?: string;
   phone?: string;
-  whatsapp?: string;
   business_name?: string;
   business_type?: string;
   city?: string;
@@ -213,6 +212,7 @@ export interface ContactRequest {
   automation_goals?: string;
   timeline?: string;
   source?: string;
+  notes?: string | null;
   challenge?: string;
   message?: string;
   status?: ContactRequestStatus;
