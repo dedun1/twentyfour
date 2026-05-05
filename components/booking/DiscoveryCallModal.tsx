@@ -72,14 +72,15 @@ export function DiscoveryCallModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     setError(null);
 
     if (!name.trim() || !phone.trim() || !date || !time) {
       setError(isAr ? 'من فضلك املأ كل الحقول المطلوبة.' : 'Please fill in all required fields.');
+      setSubmitting(false);
       return;
     }
 
-    setSubmitting(true);
     try {
       const res = await fetch('/api/discovery-call', {
         method: 'POST',
@@ -95,13 +96,18 @@ export function DiscoveryCallModal({
           session_id: sessionId || null,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || 'Submission failed');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok === true) {
+        setError(null);
+        setSuccess(true);
+        return;
       }
-      setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : (isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Try again.'));
+      setError(
+        (typeof data?.error === 'string' && data.error) ||
+        (isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Please try again.')
+      );
+    } catch {
+      setError(isAr ? 'حصل خطأ. حاول تاني.' : 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -131,23 +137,23 @@ export function DiscoveryCallModal({
 
         {success ? (
           <div className="p-8 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center">
-              <CheckCircle2 size={32} className="text-green-500" />
+            <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <CheckCircle2 size={40} className="text-amber-500" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">
-              {isAr ? 'تم الحجز بنجاح' : 'Request received'}
+              {isAr ? 'تم استلام الطلب' : 'Request received'}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               {isAr
-                ? 'استلمنا طلبك. هنبعتلك تأكيد على الإيميل خلال 24 ساعة برابط المكالمة. لو معرفناش إن خدماتنا مناسبة لبيزنسك، هنقولك بصراحة بدل ما نضيع وقتك.'
-                : 'We got your request. You will get a confirmation email within 24 hours with the meeting link. If we do not think our services are a fit for your business, we will tell you honestly instead of wasting your time.'}
+                ? 'سنتواصل معك خلال 24 ساعة لتأكيد مكالمة الاكتشاف.'
+                : "We'll be in touch within 24 hours to confirm your discovery call."}
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="btn-gold inline-flex px-7 py-2.5"
+              className="btn-gold w-full py-3 text-base"
             >
-              {isAr ? 'تمام' : 'Got it'}
+              {isAr ? 'إغلاق' : 'Close'}
             </button>
           </div>
         ) : (
@@ -279,7 +285,7 @@ export function DiscoveryCallModal({
               {submitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin shrink-0" />
-                  <span>{isAr ? 'جاري الإرسال...' : 'Submitting...'}</span>
+                  <span>{isAr ? 'جاري الحجز...' : 'Booking...'}</span>
                 </>
               ) : (
                 <span>{isAr ? 'احجز مكالمتي' : 'Book My Call'}</span>
