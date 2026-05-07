@@ -15,6 +15,8 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { COOKIE_NAME } from '@/lib/onboarding-session';
+import type { CapturedFacts, Recommendation } from '@/lib/agents/types';
+import { computeSavings, formatCurrency, formatHours } from '@/lib/recommendations/computeSavings';
 import { PipelineAutoRefresh } from './PipelineAutoRefresh';
 import { BookCallTrigger } from './BookCallTrigger';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +59,8 @@ type SessionRow = {
   language?: 'en' | 'ar';
   business_summary?: string | null;
   monthly_revenue_at_risk?: number | null;
+  detected_industry?: string | null;
+  captured_facts?: CapturedFacts | null;
   recommendations?: RawRecommendation[] | null;
   pipeline_status?: 'pending' | 'running' | 'complete' | 'error' | null;
   pipeline_error?: string | null;
@@ -85,13 +89,6 @@ function priorityClass(p: string) {
   if (p === 'high') return 'bg-red-500/15 text-red-500';
   if (p === 'medium') return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
   return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-}
-
-function extractDollarsFromROI(roi: string): number {
-  if (!roi) return 0;
-  const match = roi.match(/[\$~]?\s*([\d,]+)\s*(?:USD|\$)?/i);
-  if (!match) return 0;
-  return Number.parseInt(match[1].replace(/,/g, ''), 10) || 0;
 }
 
 export default async function OnboardingRecommendationsPage({
@@ -217,7 +214,7 @@ export default async function OnboardingRecommendationsPage({
     const hours = Number(rec.time_saved_hours_per_month ?? rec.hours_saved ?? rec.timeSaved ?? 4);
     const problem = rec.problem ?? rec.pain_point ?? rec.description ?? '';
     const solution = rec.solution ?? rec.what_we_build ?? rec.automation ?? '';
-    const roi = rec.estimated_roi ?? rec.roi ?? rec.value ?? `$${Math.max(40, Math.round(hours * 10))}/mo saved`;
+    const roi = rec.estimated_roi ?? rec.roi ?? rec.value ?? `${formatCurrency(Math.max(40, Math.round(hours * 10)))}/mo saved`;
     const currentPain = rec.current_pain ?? rec.problem ?? 'Manual process taking time';
     const afterState = rec.after_state ?? rec.solution ?? 'Automated workflow';
     const priority = rec.priority === 'high' || rec.priority === 'medium' || rec.priority === 'low' ? rec.priority : 'medium';
@@ -252,18 +249,39 @@ export default async function OnboardingRecommendationsPage({
     };
   });
 
-  const totalHoursSaved = recommendations.reduce((sum, rec) => sum + (rec.hours || 0), 0);
-  const totalMonthlySavings = recommendations.reduce((sum, rec) => {
-    return sum + extractDollarsFromROI(rec.estimated_roi || '');
-  }, 0);
+  const savingsRecommendations: Recommendation[] = recommendations.map((rec) => ({
+    title: rec.title,
+    problem: rec.problem,
+    solution: rec.solution,
+    current_pain: rec.currentPain,
+    after_state: rec.afterState,
+    time_saved_hours_per_month: rec.hours,
+    estimated_roi: rec.estimated_roi,
+    impact_metric: {
+      metric_name: rec.metric.metric_name,
+      before: rec.metric.before,
+      after: rec.metric.after,
+      unit: (rec.metric.unit === 'time' || rec.metric.unit === 'percentage' || rec.metric.unit === 'hours' || rec.metric.unit === 'count')
+        ? rec.metric.unit
+        : 'time',
+    },
+    priority: (rec.priority === 'high' || rec.priority === 'medium' || rec.priority === 'low') ? rec.priority : 'medium',
+    channel: rec.channel,
+    custom_build: rec.custom_build,
+    data_quality: rec.data_quality,
+    needs_clarification: rec.needs_clarification,
+  }));
+  const savings = computeSavings(
+    savingsRecommendations,
+    session.captured_facts ?? null,
+    session.detected_industry ?? null
+  );
   const strategistCost = Number(strategist?.monthly_cost_of_inaction ?? 0);
-  const atRisk = Number((session.monthly_revenue_at_risk ?? strategistCost) || (totalHoursSaved * 15));
-  const monthlySavings = Math.max(totalMonthlySavings, 0);
-  const costOfDoingNothing = monthlySavings + atRisk;
-  const yearlySavings = monthlySavings * 12;
-  const maxYearValue = Math.max(monthlySavings * 12, 1);
-  const showSavings = Number.isFinite(monthlySavings) && monthlySavings > 0;
-  const showCompoundingChart = yearlySavings > 0;
+  const atRisk = Math.max(0, strategistCost);
+  const costOfDoingNothing = savings.monthlyDollarsSaved + atRisk;
+  const maxYearValue = Math.max(savings.annualDollarsSaved, 1);
+  const showSavings = savings.isReliable;
+  const showCompoundingChart = savings.isReliable;
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
@@ -275,9 +293,12 @@ export default async function OnboardingRecommendationsPage({
       {showSavings ? (
         <section className="sticky top-0 z-40 -mt-6">
           <div className="rounded-xl border border-amber-200 bg-amber-50/95 backdrop-blur px-4 py-2 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-amber-800">
-              ${monthlySavings}/month potential savings
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                {formatCurrency(savings.monthlyDollarsSaved)}/month potential savings
+              </p>
+              <p className="text-xs text-muted-foreground">{savings.methodLabel}</p>
+            </div>
             <BookCallTrigger
               sessionId={session.id}
               prefilledEmail={session.captured_email ?? ''}
@@ -342,18 +363,18 @@ export default async function OnboardingRecommendationsPage({
           <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {totalHoursSaved > 0 ? `${totalHoursSaved} hours/month` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {showSavings ? formatHours(savings.monthlyHoursSaved) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">lost to manual work</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalHoursSaved > 0 ? 'Calculated from: captured team workload and manual-task estimates' : 'Estimate to be confirmed on discovery call'}
+                {showSavings ? savings.methodLabel : 'Estimate to be confirmed on discovery call'}
               </p>
             </CardContent>
           </Card>
           <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {atRisk > 0 ? `$${atRisk}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {atRisk > 0 ? formatCurrency(atRisk) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">in monthly revenue at risk</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -364,7 +385,7 @@ export default async function OnboardingRecommendationsPage({
           <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {costOfDoingNothing > 0 ? `$${costOfDoingNothing}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {costOfDoingNothing > 0 ? formatCurrency(costOfDoingNothing) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">total monthly cost of doing nothing</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -387,33 +408,33 @@ export default async function OnboardingRecommendationsPage({
           <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {totalHoursSaved > 0 ? `${totalHoursSaved} hours/month` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {showSavings ? formatHours(savings.monthlyHoursSaved) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">back in your team&apos;s hands</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalHoursSaved > 0 ? 'Calculated from: recommendation-level hour recoveries' : 'Estimate to be confirmed on discovery call'}
+                {showSavings ? savings.methodLabel : 'Estimate to be confirmed on discovery call'}
               </p>
             </CardContent>
           </Card>
           <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {monthlySavings > 0 ? `$${monthlySavings}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {showSavings ? formatCurrency(savings.monthlyDollarsSaved) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">potential monthly savings</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {monthlySavings > 0 ? 'Calculated from: recommendation ROI fields grounded in captured facts' : 'Estimate to be confirmed on discovery call'}
+                {showSavings ? savings.methodLabel : 'Estimate to be confirmed on discovery call'}
               </p>
             </CardContent>
           </Card>
           <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
             <CardContent className="p-5 text-center">
               <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {yearlySavings > 0 ? `$${yearlySavings}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
+                {showSavings ? formatCurrency(savings.annualDollarsSaved) : 'We will confirm exact savings on your discovery call.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">annual savings, year one</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {yearlySavings > 0 ? 'Calculated from: monthly estimate multiplied by 12' : 'Estimate to be confirmed on discovery call'}
+                {showSavings ? savings.methodLabel : 'Estimate to be confirmed on discovery call'}
               </p>
             </CardContent>
           </Card>
@@ -557,23 +578,25 @@ export default async function OnboardingRecommendationsPage({
 
       {showCompoundingChart ? (
         <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-center text-foreground">Your savings compound every month</h2>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-foreground">Your savings compound every month</h2>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300 mt-1">
+              Year 1 total: {formatCurrency(savings.annualDollarsSaved)}
+            </p>
+          </div>
           <div className="rounded-2xl border border-border p-4 overflow-x-auto">
             <div className="min-w-[760px]">
-              <div className="text-right mb-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
-                Year 1 total: ${monthlySavings * 12}
-              </div>
               <div className="flex items-end gap-2 h-[280px]">
                 {Array.from({ length: 12 }, (_, i) => {
                   const monthIndex = i + 1;
-                  const monthValue = monthlySavings * monthIndex;
+                  const monthValue = savings.monthlyDollarsSaved * monthIndex;
                   const heightPx = Math.max(12, Math.round((monthValue / maxYearValue) * 240));
                   const milestoneLabel =
                     monthIndex === 1 ? 'Setup begins'
                       : monthIndex === 2 ? 'First savings'
                         : monthIndex === 3 ? 'Setup pays for itself'
-                          : monthIndex === 6 ? `$${monthlySavings * 6} saved`
-                            : monthIndex === 12 ? `Year 1 total: $${monthlySavings * 12}`
+                          : monthIndex === 6 ? `${formatCurrency(savings.monthlyDollarsSaved * 6)} saved`
+                            : monthIndex === 12 ? `${formatCurrency(savings.annualDollarsSaved)} total`
                               : '.';
                   return (
                     <div key={monthIndex} className="flex-1 min-w-[48px] flex flex-col items-center justify-end gap-2">
@@ -583,7 +606,7 @@ export default async function OnboardingRecommendationsPage({
                       <div
                         className="w-full rounded-t-md bg-gradient-to-t from-amber-400 to-amber-300 shadow-[0_8px_20px_rgba(251,191,36,0.35)]"
                         style={{ height: `${heightPx}px` }}
-                        title={`Month ${monthIndex}: $${monthValue} potential cumulative savings`}
+                        title={`Month ${monthIndex}: ${formatCurrency(monthValue)} potential cumulative savings`}
                       />
                       <span className="text-xs text-muted-foreground">M{monthIndex}</span>
                     </div>
@@ -593,7 +616,11 @@ export default async function OnboardingRecommendationsPage({
             </div>
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="rounded-2xl border border-border p-6 text-center">
+          <p className="text-muted-foreground">We will confirm exact savings on your discovery call.</p>
+        </section>
+      )}
 
       <section className="grid md:grid-cols-3 gap-4">
         <Card>
@@ -623,8 +650,9 @@ export default async function OnboardingRecommendationsPage({
         <Card className="rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
           <CardContent className="p-12 text-center space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold">
-              {showSavings ? `Ready to stop losing $${monthlySavings}/month?` : 'Ready to stop losing money every month?'}
+              {showSavings ? `Ready to stop losing ${formatCurrency(savings.monthlyDollarsSaved)}/month?` : 'Ready to stop losing money every month?'}
             </h2>
+            {showSavings ? <p className="text-xs text-white/85">{savings.methodLabel}</p> : null}
             <p className="max-w-3xl mx-auto text-white/90">
               30-minute discovery call. We confirm the plan, lock in your timeline, and answer every question. No payment until you&apos;re 100% sure.
             </p>

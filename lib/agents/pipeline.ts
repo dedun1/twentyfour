@@ -123,14 +123,26 @@ export async function runPipeline(sessionId: string, consultantOutput: Consultan
     strategistOutput = await runStrategist(consultantOutput, businessData);
     console.log('[Pipeline] Step 1: strategist completed in', Date.now() - strategistStart, 'ms');
     console.log('[Pipeline] Step 1: strategist output keys:', Object.keys(strategistOutput));
-    await supabaseAdmin.from('onboarding_sessions').update({ strategist_output: strategistOutput }).eq('id', sessionId);
+    await supabaseAdmin
+      .from('onboarding_sessions')
+      .update({
+        strategist_output: strategistOutput,
+        business_summary: strategistOutput.strategic_summary || null,
+      })
+      .eq('id', sessionId);
     console.log('[Pipeline] Strategist saved');
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     errors.push(`strategist:${message}`);
     console.error('[Pipeline] Step 1: strategist FAILED:', message);
     strategistOutput = fallbackStrategist;
-    await supabaseAdmin.from('onboarding_sessions').update({ strategist_output: strategistOutput }).eq('id', sessionId);
+    await supabaseAdmin
+      .from('onboarding_sessions')
+      .update({
+        strategist_output: strategistOutput,
+        business_summary: strategistOutput.strategic_summary || null,
+      })
+      .eq('id', sessionId);
     console.log('[Pipeline] Step 1: strategist fallback saved');
   }
 

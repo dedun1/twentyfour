@@ -1,3 +1,5 @@
+import type { CapturedFacts } from './types';
+
 export type TranscriptRole = 'user' | 'assistant';
 export type TranscriptEntry = { role: TranscriptRole; content: string; created_at: string };
 
@@ -41,19 +43,7 @@ export type ClaudeCapture = {
   monthly_ad_spend?: number;
 };
 
-export type CapturedFacts = {
-  monthly_revenue: number | null;
-  daily_orders: number | null;
-  average_order_value: number | null;
-  team_size: number | null;
-  monthly_team_cost: number | null;
-  monthly_tool_spend: number | null;
-  monthly_ad_spend: number | null;
-  response_time: string | null;
-  no_show_rate: string | null;
-  pain_points: string[];
-  manual_processes: string[];
-};
+export type { CapturedFacts } from './types';
 
 export type ConsultantTurnResult =
   | {
