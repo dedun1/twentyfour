@@ -130,12 +130,70 @@ function isClaudeInterviewResponse(value: unknown): value is ClaudeInterviewResp
   return false;
 }
 
+/** Split comma / "and" / slash separated tool names; no allowlist (B.2). */
+function splitToolNamesFromString(s: string): string[] {
+  return s
+    .split(/\s*(?:,|;|\/|\n|(?:\s+and\s+))\s*/i)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+}
+
+function asStringListFlexible(v: unknown): string[] {
+  if (Array.isArray(v)) {
+    return v.flatMap((item) => {
+      if (typeof item !== 'string' || !item.trim()) return [];
+      return splitToolNamesFromString(item.trim());
+    });
+  }
+  if (typeof v === 'string' && v.trim()) {
+    return splitToolNamesFromString(v.trim());
+  }
+  return [];
+}
+
+/**
+ * If hours_lost_per_week is still null, infer from pain/manual text (B.3).
+ * Chosen approach: post-parse regex on pain_points + manual_processes so we
+ * still benefit when the extraction model omits the scalar field.
+ */
+function extractWeeklyHoursFromBlob(blob: string): number {
+  let sum = 0;
+  const mult = /\b(7|seven)\s*days|every\s*day\b/i.test(blob) ? 7 : 5;
+  for (const m of blob.matchAll(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:\/|per|a)\s*week\b/gi)) {
+    sum += Number(m[1]);
+  }
+  for (const m of blob.matchAll(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:daily|(?:\/|per|a)\s*day)\b/gi)) {
+    sum += Number(m[1]) * mult;
+  }
+  for (const m of blob.matchAll(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s+a\s+day\b/gi)) {
+    sum += Number(m[1]) * mult;
+  }
+  return sum;
+}
+
+function inferHoursLostPerWeek(
+  hoursFromFacts: number | null,
+  pain_points: string[],
+  manual_processes: string[]
+): number | null {
+  if (typeof hoursFromFacts === 'number' && Number.isFinite(hoursFromFacts)) {
+    return hoursFromFacts;
+  }
+  let total = 0;
+  for (const blob of [...pain_points, ...manual_processes]) {
+    total += extractWeeklyHoursFromBlob(blob);
+  }
+  return total > 0 ? Math.round(total) : null;
+}
+
 function normalizeCapturedFacts(input: unknown): CapturedFacts {
   const facts = isRecord(input) ? input : {};
   const asNumber = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
   const asString = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
-  const asStringList = (v: unknown): string[] =>
-    Array.isArray(v) ? v.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean) : [];
+  const pain_points = asStringListFlexible(facts.pain_points);
+  const manual_processes = asStringListFlexible(facts.manual_processes);
+  const current_tools = asStringListFlexible(facts.current_tools);
+  const hours_lost_per_week = inferHoursLostPerWeek(asNumber(facts.hours_lost_per_week), pain_points, manual_processes);
   return {
     monthly_revenue: asNumber(facts.monthly_revenue),
     daily_orders: asNumber(facts.daily_orders),
@@ -145,12 +203,12 @@ function normalizeCapturedFacts(input: unknown): CapturedFacts {
     monthly_team_cost: asNumber(facts.monthly_team_cost),
     monthly_tool_spend: asNumber(facts.monthly_tool_spend),
     monthly_ad_spend: asNumber(facts.monthly_ad_spend),
-    hours_lost_per_week: asNumber(facts.hours_lost_per_week),
+    hours_lost_per_week,
     response_time: asString(facts.response_time),
     no_show_rate: asString(facts.no_show_rate),
-    pain_points: asStringList(facts.pain_points),
-    manual_processes: asStringList(facts.manual_processes),
-    current_tools: asStringList(facts.current_tools),
+    pain_points,
+    manual_processes,
+    current_tools,
     product_or_service: asString(facts.product_or_service),
     customer_type: asString(facts.customer_type),
     acquisition_channel: asString(facts.acquisition_channel),
@@ -170,6 +228,10 @@ async function extractCapturedFactsFromTranscript(
         role: 'user',
         content: `Extract structured facts from this consultation transcript. Return ONLY valid JSON, no other text.
 
+Special rules:
+- hours_lost_per_week: approximate total weekly hours lost to operational or admin pain. If the user gives time per day or per week on tasks (example: 4 hours daily on insurance verification), convert to weekly hours (hours-per-day times 5 for a typical Monday-Friday week unless they said 7 days or every day, then times 7). If several pains include durations, sum into one weekly total.
+- current_tools: include every software, app, or platform the user explicitly named (examples: Dentrix, Google Calendar, QuickBooks, HubSpot). Use a JSON array of strings, or a single comma-separated string if easier. Do not drop names because they are not in a catalog.
+
 Transcript:
 ${JSON.stringify(transcript)}
 
@@ -188,7 +250,7 @@ Return this exact structure (use null for anything not explicitly stated):
   "no_show_rate": <string or null>,
   "pain_points": ["array of specific pain points mentioned"],
   "manual_processes": ["array of manual tasks described"],
-  "current_tools": ["array of tools mentioned like Shopify, Excel, Instagram"],
+  "current_tools": ["array of tools mentioned"],
   "product_or_service": <string or null>,
   "customer_type": <string or null>,
   "acquisition_channel": <string or null>,
