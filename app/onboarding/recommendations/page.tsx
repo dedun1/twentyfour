@@ -15,6 +15,9 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { COOKIE_NAME } from '@/lib/onboarding-session';
+import type { CapturedFacts, Recommendation } from '@/lib/agents/types';
+import { computeSavings, formatCurrency, formatHours } from '@/lib/recommendations/computeSavings';
+import { SavingsMethodology } from '@/components/recommendations/SavingsMethodology';
 import { PipelineAutoRefresh } from './PipelineAutoRefresh';
 import { BookCallTrigger } from './BookCallTrigger';
 import { Badge } from '@/components/ui/badge';
@@ -73,10 +76,11 @@ type SessionRow = {
     core_bottleneck?: string;
     root_causes?: string[];
     highest_leverage_move?: string;
-    monthly_cost_of_inaction?: number;
     risks_if_no_action?: string[];
     what_winning_looks_like?: string;
   } | null;
+  captured_facts?: CapturedFacts | null;
+  detected_industry?: string | null;
   captured_email?: string | null;
   captured_phone?: string | null;
 };
@@ -85,13 +89,6 @@ function priorityClass(p: string) {
   if (p === 'high') return 'bg-red-500/15 text-red-500';
   if (p === 'medium') return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
   return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-}
-
-function extractDollarsFromROI(roi: string): number {
-  if (!roi) return 0;
-  const match = roi.match(/[\$~]?\s*([\d,]+)\s*(?:USD|\$)?/i);
-  if (!match) return 0;
-  return Number.parseInt(match[1].replace(/,/g, ''), 10) || 0;
 }
 
 export default async function OnboardingRecommendationsPage({
@@ -192,7 +189,6 @@ export default async function OnboardingRecommendationsPage({
   const heroSubline = (pitcher?.hero_subline || `Here's what we'd build for ${businessName}`)
     .replaceAll('bottlenecks', 'challenges')
     .replaceAll('bottleneck', 'biggest challenge');
-  const costHeadline = pitcher?.cost_of_inaction_headline || 'What manual work is costing you right now';
   const transformPromise = pitcher?.transformation_promise || 'What changes with TwentyFour';
   const ctaMain = pitcher?.cta_main || 'Book my discovery call';
   const ctaSecondary = pitcher?.cta_secondary || 'I have questions first';
@@ -252,18 +248,40 @@ export default async function OnboardingRecommendationsPage({
     };
   });
 
-  const totalHoursSaved = recommendations.reduce((sum, rec) => sum + (rec.hours || 0), 0);
-  const totalMonthlySavings = recommendations.reduce((sum, rec) => {
-    return sum + extractDollarsFromROI(rec.estimated_roi || '');
-  }, 0);
-  const strategistCost = Number(strategist?.monthly_cost_of_inaction ?? 0);
-  const atRisk = Number((session.monthly_revenue_at_risk ?? strategistCost) || (totalHoursSaved * 15));
-  const monthlySavings = Math.max(totalMonthlySavings, 0);
-  const costOfDoingNothing = monthlySavings + atRisk;
-  const yearlySavings = monthlySavings * 12;
-  const maxYearValue = Math.max(monthlySavings * 12, 1);
-  const showSavings = Number.isFinite(monthlySavings) && monthlySavings > 0;
-  const showCompoundingChart = yearlySavings > 0;
+  const savings = computeSavings(
+    session.captured_facts as CapturedFacts | null | undefined,
+    rawRecs,
+    session.detected_industry ?? null,
+  );
+  const showSavings = savings.isReliable;
+  const showCompoundingChart = showSavings && savings.annualDollarsSaved > 0;
+  const maxYearValue = Math.max(savings.annualDollarsSaved, 1);
+
+  const recommendationsForSavings: Recommendation[] = recommendations.map((r, i) => {
+    const raw = rawRecs[i];
+    const h = Number(raw?.time_saved_hours_per_month ?? raw?.hours_saved ?? raw?.timeSaved ?? 0);
+    const timeSaved = Number.isFinite(h) && h > 0 ? Math.round(h) : 0;
+    return {
+      title: r.title,
+      problem: r.problem,
+      solution: r.solution,
+      current_pain: r.currentPain,
+      after_state: r.afterState,
+      time_saved_hours_per_month: timeSaved,
+      estimated_roi: r.estimated_roi,
+      impact_metric: {
+        metric_name: r.metric.metric_name,
+        before: r.metric.before,
+        after: r.metric.after,
+        unit: 'hours',
+      },
+      priority: r.priority as Recommendation['priority'],
+      channel: r.channel,
+      custom_build: r.custom_build,
+      ...(r.data_quality ? { data_quality: r.data_quality } : {}),
+      ...(typeof r.needs_clarification === 'boolean' ? { needs_clarification: r.needs_clarification } : {}),
+    };
+  });
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
@@ -276,7 +294,7 @@ export default async function OnboardingRecommendationsPage({
         <section className="sticky top-0 z-40 -mt-6">
           <div className="rounded-xl border border-amber-200 bg-amber-50/95 backdrop-blur px-4 py-2 flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-amber-800">
-              ${monthlySavings}/month potential savings
+              {formatCurrency(savings.monthlyDollarsSaved)}/month potential savings
             </p>
             <BookCallTrigger
               sessionId={session.id}
@@ -333,95 +351,97 @@ export default async function OnboardingRecommendationsPage({
         </section>
       ) : null}
 
-      <section className="bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900 rounded-2xl p-8 space-y-5">
-        <div className="flex justify-center">
-          <span className="size-3 rounded-full bg-red-500 animate-pulse" />
-        </div>
-        <h2 className="text-2xl font-bold text-foreground text-center">{costHeadline}</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {totalHoursSaved > 0 ? `${totalHoursSaved} hours/month` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">lost to manual work</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalHoursSaved > 0 ? 'Calculated from: captured team workload and manual-task estimates' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {atRisk > 0 ? `$${atRisk}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">in monthly revenue at risk</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {atRisk > 0 ? 'Calculated from: captured response delays, no-show context, and stated volume' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {costOfDoingNothing > 0 ? `$${costOfDoingNothing}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">total monthly cost of doing nothing</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {costOfDoingNothing > 0 ? 'Calculated from: monthly value + revenue-at-risk estimate' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        <p className="text-xs text-center text-muted-foreground">
-          Time savings calculated from your stated volume × industry benchmarks for each automation type.
-        </p>
-      </section>
+      {showSavings ? (
+        <section className="bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900 rounded-2xl p-8 space-y-5">
+          <div className="flex justify-center">
+            <span className="size-3 rounded-full bg-red-500 animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground text-center">
+            Every month you wait, this is what it costs you.
+          </h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                  {formatHours(savings.monthlyHoursSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">lost every month</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  From the manual processes we identified in your consultation
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(savings.monthlyDollarsSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">walking out the door each month</p>
+                <p className="text-xs text-muted-foreground mt-1">{savings.methodLabel}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-red-200 dark:border-red-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(savings.annualDollarsSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">if nothing changes for a year</p>
+                <p className="text-xs text-muted-foreground mt-1">Monthly cost multiplied by 12</p>
+              </CardContent>
+            </Card>
+          </div>
+          <SavingsMethodology savings={savings} recommendations={recommendationsForSavings} />
+        </section>
+      ) : null}
 
-      <section className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900 rounded-2xl p-8 space-y-5">
-        <div className="flex justify-center text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="size-5" />
-        </div>
-        <h2 className="text-2xl font-bold text-foreground text-center">{transformPromise}</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {totalHoursSaved > 0 ? `${totalHoursSaved} hours/month` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">back in your team&apos;s hands</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalHoursSaved > 0 ? 'Calculated from: recommendation-level hour recoveries' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {monthlySavings > 0 ? `$${monthlySavings}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">potential monthly savings</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {monthlySavings > 0 ? 'Calculated from: recommendation ROI fields grounded in captured facts' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
-            <CardContent className="p-5 text-center">
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                {yearlySavings > 0 ? `$${yearlySavings}` : 'We need a few more details to calculate this. We will cover it on the discovery call.'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">annual savings, year one</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {yearlySavings > 0 ? 'Calculated from: monthly estimate multiplied by 12' : 'Estimate to be confirmed on discovery call'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        <p className="text-xs text-center text-muted-foreground">
-          Estimates based on your specific volume and benchmarks from similar businesses. Your discovery call confirms exact numbers.
-        </p>
-      </section>
+      {showSavings ? (
+        <section className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900 rounded-2xl p-8 space-y-5">
+          <div className="flex justify-center text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-5" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground text-center">{transformPromise}</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatHours(savings.monthlyHoursSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">back in your team&apos;s hands</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calculated from: recommendation-level hour recoveries
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(savings.monthlyDollarsSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">potential monthly savings</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calculated from: recommendation ROI fields grounded in captured facts
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
+              <CardContent className="p-5 text-center">
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(savings.annualDollarsSaved)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">annual savings, year one</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calculated from: monthly estimate multiplied by 12
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <p className="text-xs text-center text-muted-foreground">
+            Estimates based on your specific volume and benchmarks from similar businesses. Your discovery call confirms
+            exact numbers.
+          </p>
+          <SavingsMethodology savings={savings} recommendations={recommendationsForSavings} />
+        </section>
+      ) : null}
 
       {hasStrategicInsight && leverageMove ? (
         <section>
@@ -561,19 +581,20 @@ export default async function OnboardingRecommendationsPage({
           <div className="rounded-2xl border border-border p-4 overflow-x-auto">
             <div className="min-w-[760px]">
               <div className="text-right mb-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
-                Year 1 total: ${monthlySavings * 12}
+                Year 1 total: {formatCurrency(savings.annualDollarsSaved)}
               </div>
               <div className="flex items-end gap-2 h-[280px]">
                 {Array.from({ length: 12 }, (_, i) => {
                   const monthIndex = i + 1;
-                  const monthValue = monthlySavings * monthIndex;
+                  const monthValue = savings.monthlyDollarsSaved * monthIndex;
                   const heightPx = Math.max(12, Math.round((monthValue / maxYearValue) * 240));
                   const milestoneLabel =
                     monthIndex === 1 ? 'Setup begins'
                       : monthIndex === 2 ? 'First savings'
                         : monthIndex === 3 ? 'Setup pays for itself'
-                          : monthIndex === 6 ? `$${monthlySavings * 6} saved`
-                            : monthIndex === 12 ? `Year 1 total: $${monthlySavings * 12}`
+                          : monthIndex === 6 ? `${formatCurrency(savings.monthlyDollarsSaved * 6)} saved`
+                            : monthIndex === 12
+                              ? `Year 1 total: ${formatCurrency(savings.annualDollarsSaved)}`
                               : '.';
                   return (
                     <div key={monthIndex} className="flex-1 min-w-[48px] flex flex-col items-center justify-end gap-2">
@@ -583,7 +604,7 @@ export default async function OnboardingRecommendationsPage({
                       <div
                         className="w-full rounded-t-md bg-gradient-to-t from-amber-400 to-amber-300 shadow-[0_8px_20px_rgba(251,191,36,0.35)]"
                         style={{ height: `${heightPx}px` }}
-                        title={`Month ${monthIndex}: $${monthValue} potential cumulative savings`}
+                        title={`Month ${monthIndex}: ${formatCurrency(monthValue)} potential cumulative savings`}
                       />
                       <span className="text-xs text-muted-foreground">M{monthIndex}</span>
                     </div>
@@ -623,7 +644,9 @@ export default async function OnboardingRecommendationsPage({
         <Card className="rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
           <CardContent className="p-12 text-center space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold">
-              {showSavings ? `Ready to stop losing $${monthlySavings}/month?` : 'Ready to stop losing money every month?'}
+              {showSavings
+                ? `Ready to stop losing ${formatCurrency(savings.monthlyDollarsSaved)}/month?`
+                : 'Ready to stop losing money every month?'}
             </h2>
             <p className="max-w-3xl mx-auto text-white/90">
               30-minute discovery call. We confirm the plan, lock in your timeline, and answer every question. No payment until you&apos;re 100% sure.
