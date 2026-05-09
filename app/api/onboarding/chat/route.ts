@@ -914,11 +914,10 @@ export async function POST(request: Request) {
           })
           .filter((m): m is { role: 'user' | 'assistant'; content: string } => m !== null);
 
-      // USA deployments: prefer SMS/Email in recommendations; the schema below still lists "WhatsApp" as a legacy channel literal for model compatibility (follow-up cleanup).
       const extractionMessages = [
         {
           role: 'user' as const,
-          content: `Here is a full consultation transcript between a business consultant and a business owner:\n\n${normalizedForceMessages.map((m) => `${m.role === 'user' ? 'BUSINESS OWNER' : 'CONSULTANT'}: ${m.content}`).join('\n\n')}\n\nBased on this conversation, generate a complete analysis. Output ONLY a raw JSON object with this EXACT schema:\n\n{\n  "complete": true,\n  "next_question": "Thanks for sharing everything. Your personalized plan is being built right now. You will see it in just a few seconds.",\n  "business_summary": "3-4 sentences summarizing this specific business, their volume, their pain points, using their actual words and numbers",\n  "monthly_revenue_at_risk": <number — estimate monthly money they are losing to manual processes, no-shows, slow responses, etc. Use their numbers. Must be > 0>,\n  "captured_budget_range": "under_300" | "300_to_1000" | "1000_plus" | "not_sure",\n  "recommendations": [\n    {\n      "title": "Short name (max 6 words)",\n      "problem": "20+ words describing their actual pain using their words",\n      "solution": "20+ words describing what we build, in plain English, no tech jargon",\n      "current_pain": "One vivid sentence about the cost of not fixing this",\n      "after_state": "One vivid sentence about the new reality",\n      "time_saved_hours_per_month": <number based on their volume>,\n      "estimated_roi": "Saves ~$X/month. Show your math.",\n      "impact_metric": { "metric_name": "...", "before": "...", "after": "...", "unit": "time"|"percentage"|"hours"|"count" },\n      "priority": "high"|"medium"|"low",\n      "channel": "WhatsApp"|"SMS"|"Email"|"Instagram"|"Dashboard"|"Custom",\n      "custom_build": false\n    }\n  ]\n}\n\nGenerate 3-6 recommendations. Use ONLY data from the conversation. Be specific. Output ONLY raw JSON, nothing else.`,
+          content: `Here is a full consultation transcript between a business consultant and a business owner:\n\n${normalizedForceMessages.map((m) => `${m.role === 'user' ? 'BUSINESS OWNER' : 'CONSULTANT'}: ${m.content}`).join('\n\n')}\n\nBased on this conversation, generate a complete analysis. Output ONLY a raw JSON object with this EXACT schema:\n\n// Leave recommendations empty. The recommender agent generates recommendations after this completes.\n{\n  "complete": true,\n  "next_question": "Thanks for sharing everything. Your personalized plan is being built right now. You will see it in just a few seconds.",\n  "business_summary": "3-4 sentences summarizing this specific business, their volume, their pain points, using their actual words and numbers",\n  "monthly_revenue_at_risk": <number — estimate monthly money they are losing to manual processes, no-shows, slow responses, etc. Use their numbers. Must be > 0>,\n  "captured_budget_range": "under_300" | "300_to_1000" | "1000_plus" | "not_sure",\n  "captured_facts": {\n    "monthly_revenue": <number or null>,\n    "daily_orders": <number or null>,\n    "average_order_value": <number or null>,\n    "team_size": <number or null>,\n    "monthly_team_cost": <number or null>,\n    "monthly_tool_spend": <number or null>,\n    "monthly_ad_spend": <number or null>,\n    "response_time": "<string or null>",\n    "no_show_rate": "<string or null>",\n    "pain_points": ["..."],\n    "manual_processes": ["..."]\n  },\n  "recommendations": [],\n  "capture": {}\n}\n\nDo NOT add any objects to recommendations. It must remain []. Use ONLY data from the conversation. Be specific. Output ONLY raw JSON, nothing else.`,
         },
       ];
 
@@ -1066,12 +1065,20 @@ export async function POST(request: Request) {
         ? [{ role: 'user', content: OPENING_TRIGGER, created_at: new Date().toISOString() }]
         : transcriptAfterUser;
 
+    const missingContact = getMissingContactFields({
+      captured_email: sessionRow.captured_email,
+      captured_phone: sessionRow.captured_phone,
+    });
+    const capturedPhone = !missingContact.includes('phone');
+    const capturedEmail = !missingContact.includes('email');
+    console.log('Missing contact fields:', missingContact);
+
     // Keep JSON format compliance sticky by reinforcing instruction on the latest user turn.
     const messagesForClaude: TranscriptEntry[] = baseMessagesForClaude.map((msg, index) => {
       if (index === baseMessagesForClaude.length - 1 && msg.role === 'user') {
         return {
           ...msg,
-          content: `${msg.content}\n\n[SYSTEM REMINDER: You MUST respond with a raw JSON object. No plain text before or after. Start with { and end with }. If you are ready to complete, set "complete": true.]`,
+          content: `${msg.content}\n\n[ALREADY CAPTURED: phone=${capturedPhone ? 'YES' : 'NO'}, email=${capturedEmail ? 'YES' : 'NO'}]\n[SYSTEM REMINDER: You MUST respond with a raw JSON object. No plain text before or after. Start with { and end with }. If you are ready to complete, set "complete": true.]`,
         };
       }
       return msg;
@@ -1095,11 +1102,6 @@ Detected industry: ${sessionRow.detected_industry || 'not yet classified'}
 Buyer profile: ${sessionRow.buyer_profile || 'not yet profiled'}
 Current conversation stage: ${sessionRow.conversation_stage || 'rapport'}
 Message count: ${messagesForClaude.length}`;
-    const missingContact = getMissingContactFields({
-      captured_email: sessionRow.captured_email,
-      captured_phone: sessionRow.captured_phone,
-    });
-    console.log('Missing contact fields:', missingContact);
     const system = `${contextLine}\n\n${CONSULTANT_SYSTEM_PROMPT}\n\n${CONSULTANT_CONTACT_RULES_APPENDIX}\n${contextBlock}`;
 
     const extractedText = await callClaude(messagesForClaude, system);
@@ -1173,15 +1175,29 @@ Message count: ${messagesForClaude.length}`;
             {
               role: 'user',
               content: `Based on the entire conversation above, generate the completion JSON with these exact fields:
+// Leave recommendations empty. The recommender agent generates recommendations after this completes.
 {
   "complete": true,
   "next_question": "Thanks for sharing all of that. Your personalized plan is being built right now. You will see it in a few seconds.",
   "business_summary": "3-4 sentence summary of this specific business",
   "monthly_revenue_at_risk": <number>,
   "captured_budget_range": "under_300" | "300_to_1000" | "1000_plus" | "not_sure",
-  "recommendations": [array of 3-6 recommendations with title, problem, solution, current_pain, after_state, time_saved_hours_per_month, estimated_roi, impact_metric, priority, channel]
+  "captured_facts": {
+    "monthly_revenue": <number or null>,
+    "daily_orders": <number or null>,
+    "average_order_value": <number or null>,
+    "team_size": <number or null>,
+    "monthly_team_cost": <number or null>,
+    "monthly_tool_spend": <number or null>,
+    "monthly_ad_spend": <number or null>,
+    "response_time": "<string or null>",
+    "no_show_rate": "<string or null>",
+    "pain_points": ["..."],
+    "manual_processes": ["..."]
+  },
+  "recommendations": []
 }
-Output ONLY the JSON. No text before or after.`,
+Do NOT add recommendation objects. recommendations must stay []. Output ONLY the JSON. No text before or after.`,
             },
           ],
         });
