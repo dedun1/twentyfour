@@ -211,6 +211,9 @@ export default async function OnboardingRecommendationsPage({
   const recommendations = rawRecs.map((rec, i) => {
     const metric = rec.impact_metric ?? { metric_name: 'Time spent', before: 'Manual', after: 'Automated', unit: '' };
     const hours = Number(rec.time_saved_hours_per_month ?? rec.hours_saved ?? rec.timeSaved ?? 4);
+    const rawHoursForBadge = Number(rec.time_saved_hours_per_month ?? rec.hours_saved ?? rec.timeSaved ?? NaN);
+    const time_saved_hours_per_month =
+      Number.isFinite(rawHoursForBadge) && rawHoursForBadge > 0 ? Math.round(rawHoursForBadge) : 0;
     const problem = rec.problem ?? rec.pain_point ?? rec.description ?? '';
     const solution = rec.solution ?? rec.what_we_build ?? rec.automation ?? '';
     const roi = rec.estimated_roi ?? rec.roi ?? rec.value ?? `$${Math.max(40, Math.round(hours * 10))}/mo saved`;
@@ -240,6 +243,7 @@ export default async function OnboardingRecommendationsPage({
         unit: metric.unit || '',
       },
       hours: Number.isFinite(hours) && hours > 0 ? Math.round(hours) : 4,
+      time_saved_hours_per_month,
       priority,
       channel,
       custom_build: Boolean(rec.custom_build),
@@ -498,12 +502,12 @@ export default async function OnboardingRecommendationsPage({
                     </p>
                   </div>
 
-                  <div className="flex md:flex-col items-center justify-center gap-2">
-                    <ChevronRight className="size-8 text-amber-500 hidden md:block animate-pulse" />
-                    <ChevronRight className="size-8 text-amber-500 rotate-90 md:hidden animate-pulse" />
-                    {!rec.needs_clarification && rec.data_quality !== 'low' ? (
-                      <span className="text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-1">
-                        +{rec.hours} hrs/mo
+                  <div className="flex md:flex-col items-center justify-center gap-2 min-w-0 shrink-0">
+                    <ChevronRight className="size-8 text-amber-500 hidden md:block animate-pulse shrink-0" />
+                    <ChevronRight className="size-8 text-amber-500 rotate-90 md:hidden animate-pulse shrink-0" />
+                    {Number.isFinite(rec.time_saved_hours_per_month) && rec.time_saved_hours_per_month > 0 ? (
+                      <span className="text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-1 whitespace-nowrap shrink-0">
+                        +{Math.round(rec.time_saved_hours_per_month)} hrs/mo
                       </span>
                     ) : null}
                   </div>
@@ -528,11 +532,11 @@ export default async function OnboardingRecommendationsPage({
                   </p>
                 </details>
 
-                <div className="flex justify-end">
+                <div className="mt-4 w-full min-w-0 rounded-md border border-amber-200/70 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-3 text-xs leading-relaxed text-amber-950 dark:text-amber-100 break-words">
                   {!rec.needs_clarification && rec.data_quality !== 'low' ? (
-                    <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300">{rec.estimated_roi}</Badge>
+                    <span>{rec.estimated_roi}</span>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Specific impact confirmed on discovery call.</p>
+                    <span className="text-muted-foreground">Specific impact confirmed on discovery call.</span>
                   )}
                 </div>
               </CardContent>
