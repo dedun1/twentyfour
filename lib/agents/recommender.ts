@@ -20,6 +20,25 @@ Every recommendation MUST tie to a specific captured_facts pain_point or manual_
 For time_saved_hours_per_month and estimated_roi, use only captured numbers. If numbers are missing, set needs_clarification to true and explain that exact impact is confirmed on discovery call.
 Never invent dollar figures.
 
+==== ANTI-FABRICATION RULE ====
+
+When you write current_pain, estimated_roi, or impact_metric.before, you may ONLY cite numbers the user explicitly mentioned in captured_facts. If captured_facts does not contain a relevant number for a given recommendation:
+
+ALLOWED: estimate from industry benchmarks, but you MUST:
+1. Hedge the language. Use "typically", "similar operators see", "industry average is roughly", or "in our experience with HVAC operators of this size".
+2. Set needs_clarification: true on that recommendation.
+3. In the data_quality field, set "low" if your numbers are entirely benchmark-based, "medium" if you have at least one user-stated metric, "high" only if all numbers come from user-stated facts.
+4. Include a "discovery_call_clarifies" field listing the specific data point(s) that would tighten the estimate. Example: "exact missed-call count per week" or "current no-show rate".
+
+NOT ALLOWED:
+- Stating concrete missed-call counts when user said "sometimes we miss calls" without a number.
+- Citing specific dollar figures of revenue loss when user did not state revenue OR you noticed a revenue contradiction.
+- Quantifying hours saved when hours_lost_per_week is null.
+
+If the user mentioned a pain point but provided no quantification AND no industry benchmark exists for that scenario, write the estimated_roi as: "Specific dollar impact to be calculated on discovery call. Based on the pain you described, we'd expect [hedged qualitative range]."
+
+==== END BLOCK ====
+
 TwentyFour can build ANYTHING that's technically possible. You are NOT limited to a fixed catalog. Common things we build:
 - SMS/Email/Instagram automation (replies, booking, follow-up, broadcasts)
 - AI customer support trained on the business's FAQs and tone
@@ -36,6 +55,8 @@ TwentyFour can build ANYTHING that's technically possible. You are NOT limited t
 - Anything else they need, if it's technically possible, propose it
 
 Output 3-6 recommendations in priority order (highest impact first). Use their actual numbers. Generate ONLY recommendations that directly address the strategist's identified bottleneck and root causes.
+
+Each recommendation MUST include data_quality (required): "high" means all quantified numbers in current_pain, estimated_roi, and impact_metric.before trace to user-stated captured_facts; "medium" means at least one user-stated metric plus hedged benchmark language; "low" means quantification is primarily benchmark-based or the user gave no usable numbers. Each recommendation MUST include discovery_call_clarifies as a string array (use [] when nothing needs confirmation on the call).
 
 Output JSON schema:
 {
@@ -58,7 +79,8 @@ Output JSON schema:
       "channel": "SMS" | "Email" | "Instagram" | "Dashboard" | "Voice" | "Custom" | etc,
       "custom_build": true | false,
       "data_quality": "high" | "medium" | "low",
-      "needs_clarification": true | false
+      "needs_clarification": true | false,
+      "discovery_call_clarifies": ["<strings: data points to confirm on discovery call, e.g. exact missed-call count per week>"]
     }
   ],
   "total_hours_saved": <sum of time_saved_hours_per_month>,
@@ -97,6 +119,11 @@ function parseRecommendation(input: unknown, index: number): Recommendation {
         ? value.data_quality
         : 'low',
     needs_clarification: Boolean(value.needs_clarification),
+    discovery_call_clarifies: Array.isArray(value.discovery_call_clarifies)
+      ? (value.discovery_call_clarifies as unknown[])
+          .map((x) => String(x).trim())
+          .filter((s) => s.length > 0)
+      : [],
   };
 }
 
