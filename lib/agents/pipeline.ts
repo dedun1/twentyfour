@@ -116,6 +116,7 @@ export async function runPipeline(sessionId: string, consultantOutput: Consultan
   let recommenderOutput: RecommenderOutput | null = null;
   let pricerOutput: PricerOutput | null = null;
   let pitcherOutput: PitcherOutput | null = null;
+  let recommenderHardFailed = false;
 
   console.log('[Pipeline] Step 1: Running strategist...');
   const strategistStart = Date.now();
@@ -149,12 +150,26 @@ export async function runPipeline(sessionId: string, consultantOutput: Consultan
     const message = error instanceof Error ? error.message : String(error);
     errors.push(`recommender:${message}`);
     console.error('[Pipeline] Step 2: recommender FAILED:', message);
-    recommenderOutput = fallbackRecommender;
+    recommenderHardFailed = true;
+    recommenderOutput = null;
+    await supabaseAdmin.from('onboarding_sessions').update({ recommendations: [] }).eq('id', sessionId);
+  }
+
+  if (recommenderHardFailed) {
     await supabaseAdmin
       .from('onboarding_sessions')
-      .update({ recommendations: recommenderOutput.recommendations })
+      .update({
+        pipeline_status: 'error',
+        pipeline_error: errors.join(' | '),
+      })
       .eq('id', sessionId);
-    console.log('[Pipeline] Step 2: recommender fallback saved');
+    return {
+      consultant: consultantOutput,
+      strategist: strategistOutput ?? fallbackStrategist,
+      recommender: fallbackRecommender,
+      pricer: fallbackPricer,
+      pitcher: fallbackPitcher,
+    };
   }
 
   console.log('[Pipeline] Step 3: Running pricer...');
