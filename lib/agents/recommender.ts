@@ -89,6 +89,27 @@ Output JSON schema:
 
 Output ONLY raw JSON. No markdown.`;
 
+function detectDegenerateOutput(recs: Recommendation[]): { isDegenerate: boolean; reason: string } {
+  if (!Array.isArray(recs)) {
+    return { isDegenerate: true, reason: 'Output is not an array' };
+  }
+  if (recs.length < 2) {
+    return { isDegenerate: true, reason: `Only ${recs.length} recommendation(s) returned (expected 3-6)` };
+  }
+  for (const rec of recs) {
+    if (!rec.title || /^Recommendation\s*\d*$/i.test(rec.title.trim())) {
+      return { isDegenerate: true, reason: `Generic title detected: "${rec.title}"` };
+    }
+    if (rec.problem && rec.problem.length < 50) {
+      return { isDegenerate: true, reason: `Problem statement too short (${rec.problem.length} chars)` };
+    }
+    if (rec.problem && /current setup is causing avoidable delays/i.test(rec.problem)) {
+      return { isDegenerate: true, reason: 'Boilerplate problem text detected' };
+    }
+  }
+  return { isDegenerate: false, reason: '' };
+}
+
 function parseRecommendation(input: unknown, index: number): Recommendation {
   const value = typeof input === 'object' && input ? (input as Record<string, unknown>) : {};
   const unitRaw = String((value.impact_metric as any)?.unit ?? 'time');
@@ -127,22 +148,31 @@ function parseRecommendation(input: unknown, index: number): Recommendation {
   };
 }
 
-function toRecommenderOutput(input: unknown): RecommenderOutput {
-  const value = typeof input === 'object' && input ? (input as Record<string, unknown>) : {};
-  const recs = Array.isArray(value.recommendations)
-    ? value.recommendations.map((r, i) => parseRecommendation(r, i)).slice(0, 6)
-    : [];
-
-  const recommendations = recs.length > 0 ? recs : [parseRecommendation({}, 0)];
-  const computedHours = recommendations.reduce((sum, rec) => sum + rec.time_saved_hours_per_month, 0);
+/** Parses recommender JSON without inserting a degenerate single fallback row. */
+function buildRecommenderOutputFromParsed(
+  value: Record<string, unknown>,
+  opts?: { attempt?: number; rawText?: string }
+): RecommenderOutput {
+  const rawRecs = Array.isArray(value.recommendations) ? value.recommendations : [];
+  if (rawRecs.length === 0) {
+    throw new Error('Recommender JSON has no recommendations array or it is empty');
+  }
+  const recs = rawRecs.map((r, i) => parseRecommendation(r, i)).slice(0, 6);
+  const degenerateCheck = detectDegenerateOutput(recs);
+  if (degenerateCheck.isDegenerate) {
+    console.error('[Recommender] DEGENERATE OUTPUT DETECTED:', degenerateCheck.reason);
+    console.error('[Recommender] Raw input that produced this:', opts?.rawText?.slice(0, 2000));
+    const suffix = opts?.attempt != null ? ` (attempt ${opts.attempt})` : '';
+    throw new Error(`Recommender produced degenerate output${suffix}: ${degenerateCheck.reason}`);
+  }
+  const computedHours = recs.reduce((sum, rec) => sum + rec.time_saved_hours_per_month, 0);
   const total_hours_saved = Math.max(1, Math.round(Number(value.total_hours_saved ?? computedHours) || computedHours));
   const total_monthly_value = Math.max(
     1,
     Math.round(Number(value.total_monthly_value ?? total_hours_saved * 10) || total_hours_saved * 10)
   );
-
   return {
-    recommendations,
+    recommendations: recs,
     total_hours_saved,
     total_monthly_value,
   };
@@ -153,36 +183,52 @@ export async function runRecommender(
   strategist: StrategistOutput,
   businessData: unknown
 ): Promise<RecommenderOutput> {
-  try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await anthropic.messages.create({
-      model: OPUS_MODEL,
-      max_tokens: 4000,
-      system: RECOMMENDER_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Business analysis request:\n${JSON.stringify(businessData, null, 2)}\n\nConsultation:\n${JSON.stringify(consultant, null, 2)}\n\nStrategic analysis:\n${JSON.stringify(strategist, null, 2)}`,
-        },
-      ],
-    });
+  const MAX_ATTEMPTS = 2;
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const userContent = `Business analysis request:\n${JSON.stringify(businessData, null, 2)}\n\nConsultation:\n${JSON.stringify(consultant, null, 2)}\n\nStrategic analysis:\n${JSON.stringify(strategist, null, 2)}`;
 
-    const rawText = response.content
-      .filter((block: { type: string }) => block.type === 'text')
-      .map((block: { type: string; text?: string }) => block.text || '')
-      .join('\n')
-      .trim();
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      console.log(`[Recommender] Attempt ${attempt}/${MAX_ATTEMPTS}`);
+      const response = await anthropic.messages.create({
+        model: OPUS_MODEL,
+        max_tokens: 4000,
+        system: RECOMMENDER_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userContent }],
+      });
 
-    const cleaned = rawText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim();
-    const parsed = toRecommenderOutput(JSON.parse(cleaned));
-    console.log('[Recommender] Success. Keys:', Object.keys(parsed));
-    return parsed;
-  } catch (error) {
-    console.error('[Recommender] FAILED:', (error as Error)?.message || error);
-    return toRecommenderOutput({});
+      console.log('[Recommender] Raw API response keys:', Object.keys(response as object));
+      console.log('[Recommender] Raw stop_reason:', (response as { stop_reason?: string }).stop_reason);
+      console.log('[Recommender] Raw usage:', JSON.stringify((response as { usage?: unknown }).usage));
+      const firstText = response.content?.find?.((c: { type: string }) => c.type === 'text') as
+        | { type: string; text?: string }
+        | undefined;
+      console.log('[Recommender] First text block (first 1500 chars):', firstText?.text?.slice(0, 1500));
+
+      const rawText = response.content
+        .filter((block: { type: string }) => block.type === 'text')
+        .map((block: { type: string; text?: string }) => block.text || '')
+        .join('\n')
+        .trim();
+
+      const cleaned = rawText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+
+      const jsonParsed = JSON.parse(cleaned) as Record<string, unknown>;
+      const out = buildRecommenderOutputFromParsed(jsonParsed, { attempt, rawText: cleaned });
+      console.log(`[Recommender] Success on attempt ${attempt} with ${out.recommendations.length} recommendations`);
+      return out;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.error(`[Recommender] Attempt ${attempt} failed:`, lastError.message);
+      if (attempt < MAX_ATTEMPTS) {
+        console.log('[Recommender] Retrying...');
+      }
+    }
   }
+  throw new Error(`Recommender failed after ${MAX_ATTEMPTS} attempts. Last error: ${lastError?.message}`);
 }
