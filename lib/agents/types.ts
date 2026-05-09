@@ -79,6 +79,7 @@ export type Recommendation = {
   custom_build: boolean;
   data_quality?: DataQuality;
   needs_clarification?: boolean;
+  discovery_call_clarifies?: string[];
 };
 
 export type RecommenderOutput = {
