@@ -224,7 +224,10 @@ function detectUngroundedDollarFigures(
     return { hasUngrounded: false, reason: 'No captured_facts to validate against (skipped)' };
   }
 
-  const numericKeys = [
+  // Count how many positive numeric fields are available for cross-referencing.
+  // If too few, the check produces false positives because most derived figures
+  // can't be traced back. Minimum 4 numeric facts required for meaningful validation.
+  const NUMERIC_KEYS = [
     'monthly_revenue',
     'daily_orders',
     'average_order_value',
@@ -234,17 +237,21 @@ function detectUngroundedDollarFigures(
     'monthly_ad_spend',
     'hours_lost_per_week',
     'cost_per_acquisition',
-  ] as const;
-  let hasPositiveNumeric = false;
-  for (const key of numericKeys) {
+  ];
+  const numericCount = NUMERIC_KEYS.filter((key) => {
     const v = capturedFacts[key];
-    if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
-      hasPositiveNumeric = true;
-      break;
-    }
-  }
-  if (!hasPositiveNumeric) {
-    return { hasUngrounded: false, reason: 'No positive numeric captured_facts to validate against (skipped)' };
+    return typeof v === 'number' && Number.isFinite(v) && v > 0;
+  }).length;
+
+  if (numericCount < 4) {
+    console.warn(
+      `[Recommender] Skipping dollar grounding check: only ${numericCount} numeric facts available (minimum 4 required). Fields present:`,
+      NUMERIC_KEYS.filter((key) => {
+        const v = capturedFacts[key];
+        return typeof v === 'number' && Number.isFinite(v) && v > 0;
+      }),
+    );
+    return { hasUngrounded: false, reason: `Only ${numericCount} numeric facts (minimum 4 required), skipped` };
   }
 
   for (const rec of recs) {
