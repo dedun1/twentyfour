@@ -412,7 +412,7 @@ export default async function OnboardingRecommendationsPage({
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">back in your team&apos;s hands</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Calculated from: recommendation-level hour recoveries
+                  From the manual processes we identified in your consultation
                 </p>
               </CardContent>
             </Card>
@@ -422,9 +422,7 @@ export default async function OnboardingRecommendationsPage({
                   {formatCurrency(savings.monthlyDollarsSaved)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">potential monthly savings</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Calculated from: recommendation ROI fields grounded in captured facts
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{savings.methodLabel}</p>
               </CardContent>
             </Card>
             <Card className="border-emerald-200 dark:border-emerald-900 bg-white dark:bg-card shadow-sm">
@@ -433,9 +431,7 @@ export default async function OnboardingRecommendationsPage({
                   {formatCurrency(savings.annualDollarsSaved)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">annual savings, year one</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Calculated from: monthly estimate multiplied by 12
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Monthly savings multiplied by 12</p>
               </CardContent>
             </Card>
           </div>
