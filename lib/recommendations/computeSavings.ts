@@ -21,6 +21,9 @@ export type SavingsBreakdown = {
 
 const FULL_TIME_HOURS_PER_MONTH = 173;
 
+// Industry rates are calibrated 20% below typical-market so the discovery
+// call always over-delivers vs page promise. "other" is set to produce a
+// conservative $15/hr floor for any business with no detected industry.
 const INDUSTRY_RATES: Record<string, { admin: number; operator: number }> = {
   dental_clinic: { admin: 30, operator: 58 },
   medical_clinic: { admin: 32, operator: 62 },
@@ -29,7 +32,7 @@ const INDUSTRY_RATES: Record<string, { admin: number; operator: number }> = {
   real_estate: { admin: 26, operator: 48 },
   beauty_salon: { admin: 24, operator: 42 },
   service_business: { admin: 26, operator: 46 },
-  other: { admin: 26, operator: 48 },
+  other: { admin: 14, operator: 19 },
 };
 
 function blendHourly(admin: number, operator: number): number {
@@ -77,10 +80,24 @@ export function computeSavings(
   let hourlyRateUsed: number;
   let methodLabel: string;
 
+  // Minimum defensible US labor rate. Below this we're modeling
+  // offshore/contractor cost arbitrage, not US labor value.
+  const TIER_A_MIN_HOURLY = 15;
+
   if (hasRealTeamCost) {
-    method = 'real_team_cost';
-    hourlyRateUsed = teamCost! / teamSize! / FULL_TIME_HOURS_PER_MONTH;
-    methodLabel = 'From your stated monthly team cost and headcount';
+    const tierAHourly = teamCost! / teamSize! / FULL_TIME_HOURS_PER_MONTH;
+    if (tierAHourly >= TIER_A_MIN_HOURLY) {
+      method = 'real_team_cost';
+      hourlyRateUsed = tierAHourly;
+      methodLabel = 'From your stated monthly team cost and headcount';
+    } else {
+      // Tier A produced an absurd rate (likely offshore contractors
+      // or freelance cost structure). Fall through to industry blend.
+      method = 'industry_blend';
+      hourlyRateUsed = industryHourly(detectedIndustry ?? null);
+      methodLabel =
+        'Conservative industry hourly blend (your stated team cost was below US labor rates)';
+    }
   } else {
     method = 'industry_blend';
     hourlyRateUsed = industryHourly(detectedIndustry ?? null);
