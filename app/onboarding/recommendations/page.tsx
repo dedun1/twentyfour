@@ -185,7 +185,10 @@ export default async function OnboardingRecommendationsPage({
   const businessName = session.captured_business_name?.trim() || 'your business';
   const pitcher = session.pitcher_output ?? null;
   const strategist = session.strategist_output ?? null;
-  const heroHeadline = pitcher?.hero_headline || 'Your Custom Automation Plan';
+  // When computeSavings is reliable, override pitcher's hero number so all displayed
+  // savings dollar figures reference the same single source of truth.
+  // Pitcher headline only shows if computeSavings can't produce a reliable number.
+  const pitcherHero = pitcher?.hero_headline || 'Your Custom Automation Plan';
   const heroSubline = (pitcher?.hero_subline || `Here's what we'd build for ${businessName}`)
     .replaceAll('bottlenecks', 'challenges')
     .replaceAll('bottleneck', 'biggest challenge');
@@ -290,7 +293,11 @@ export default async function OnboardingRecommendationsPage({
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
       <section className="text-center py-16 space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground max-w-3xl mx-auto">{heroHeadline}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-foreground max-w-3xl mx-auto">
+          {showSavings && businessName !== 'your business'
+            ? `${businessName.split(' ')[0]}, here's ${formatCurrency(savings.monthlyDollarsSaved)} you could save every month`
+            : pitcherHero}
+        </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{heroSubline}</p>
       </section>
 
@@ -594,7 +601,7 @@ export default async function OnboardingRecommendationsPage({
                         : monthIndex === 3 ? 'Setup pays for itself'
                           : monthIndex === 6 ? `${formatCurrency(savings.monthlyDollarsSaved * 6)} saved`
                             : monthIndex === 12
-                              ? `Year 1 total: ${formatCurrency(savings.annualDollarsSaved)}`
+                              ? 'Year 1'
                               : '.';
                   return (
                     <div key={monthIndex} className="flex-1 min-w-[48px] flex flex-col items-center justify-end gap-2">
