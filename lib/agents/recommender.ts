@@ -135,8 +135,11 @@ Output ONLY raw JSON. No markdown.`;
 function extractDollarFiguresFromText(text: string): number[] {
   if (!text || typeof text !== 'string') return [];
   const figures: number[] = [];
-  // Match $X or $X,XXX or $X.X with optional k/K suffix
-  const dollarPattern = /\$?\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*([kKmM])?/g;
+  // Require explicit dollar sign. Percentages, counts, and bare integers
+  // are not validated by this checker — only figures the LLM wrote as
+  // dollar amounts. Prevents false positives on text like "70% close rate"
+  // or "5-6 calls daily".
+  const dollarPattern = /\$\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*([kKmM])?/g;
   let match: RegExpExecArray | null;
   while ((match = dollarPattern.exec(text)) !== null) {
     const rawNum = match[1].replace(/,/g, '');
