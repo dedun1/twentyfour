@@ -24,26 +24,56 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
 
     const facts = (data.captured_facts ?? {}) as Record<string, unknown>;
-    const pickString = (v: unknown): string | null =>
-      typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+
+    // Flexible string picker: strings → trimmed; numbers → string; arrays → joined; else null.
+    const toReadableString = (v: unknown): string | null => {
+      if (v == null) return null;
+      if (typeof v === "string") {
+        const t = v.trim();
+        return t.length > 0 ? t : null;
+      }
+      if (typeof v === "number" && Number.isFinite(v)) return String(v);
+      if (Array.isArray(v)) {
+        const items = v
+          .map((item) => (typeof item === "string" ? item.trim() : typeof item === "number" ? String(item) : ""))
+          .filter((s) => s.length > 0);
+        return items.length > 0 ? items.join(", ") : null;
+      }
+      return null;
+    };
 
     const prefill = {
-      email: pickString(data.captured_email),
-      phone: pickString(data.captured_phone),
-      business_name: pickString(data.captured_business_name),
-      business_type: pickString(facts.business_type) ?? pickString(data.detected_industry),
-      city: pickString(facts.city),
-      team_size: pickString(facts.team_size),
-      years_in_business: pickString(facts.years_in_business),
-      daily_operations: pickString(facts.daily_operations),
-      client_acquisition: pickString(facts.client_acquisition),
-      current_tools: pickString(facts.current_tools),
-      daily_volume: pickString(facts.daily_volume),
-      time_wasters: pickString(facts.time_wasters),
-      recurring_problems: pickString(facts.recurring_problems),
-      one_thing_to_fix: pickString(facts.one_thing_to_fix),
-      automation_goals: pickString(facts.automation_goals),
-      timeline: pickString(facts.timeline),
+      email: toReadableString(data.captured_email),
+      phone: toReadableString(data.captured_phone),
+      business_name: toReadableString(data.captured_business_name),
+      // business_type prefers detected_industry (e.g. "service_business"), captured_facts doesn't store this key
+      business_type: toReadableString(data.detected_industry),
+      // city, years_in_business, timeline: not in canonical captured_facts shape, return null
+      city: null,
+      team_size: toReadableString(facts.team_size),
+      years_in_business: null,
+      // daily_operations: synthesize from product_or_service + manual_processes for context
+      daily_operations: toReadableString(facts.product_or_service)
+        ?? toReadableString(facts.manual_processes),
+      // client_acquisition: read canonical acquisition_channel key
+      client_acquisition: toReadableString(facts.acquisition_channel),
+      current_tools: toReadableString(facts.current_tools),
+      // daily_volume: derived from daily_orders + average_order_value if both present
+      daily_volume: (() => {
+        const orders = typeof facts.daily_orders === "number" ? facts.daily_orders : null;
+        const aov = typeof facts.average_order_value === "number" ? facts.average_order_value : null;
+        if (orders && aov) return `${orders} orders/day at ~$${aov} each`;
+        if (orders) return `${orders} orders/day`;
+        return null;
+      })(),
+      // time_wasters: canonical key is pain_points
+      time_wasters: toReadableString(facts.pain_points),
+      // recurring_problems: canonical key is manual_processes
+      recurring_problems: toReadableString(facts.manual_processes),
+      // one_thing_to_fix, automation_goals: not in canonical shape, return null
+      one_thing_to_fix: null,
+      automation_goals: null,
+      timeline: null,
     };
 
     return NextResponse.json({ ok: true, prefill });
