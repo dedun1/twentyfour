@@ -262,6 +262,14 @@ export default async function OnboardingRecommendationsPage({
   );
   const showSavings = savings.isReliable;
   const showCompoundingChart = showSavings && savings.annualDollarsSaved > 0;
+  const teamCostRaw = session.captured_facts?.monthly_team_cost;
+  const monthlyTeamCost = typeof teamCostRaw === 'number' && Number.isFinite(teamCostRaw) && teamCostRaw > 0 ? teamCostRaw : null;
+  const showTeamCostComparison = monthlyTeamCost !== null && monthlyTeamCost >= 1500;
+  const revenueAtRisk =
+    typeof session.monthly_revenue_at_risk === 'number' || typeof session.monthly_revenue_at_risk === 'string'
+      ? Number(session.monthly_revenue_at_risk)
+      : 0;
+  const showRevenueAtRisk = Number.isFinite(revenueAtRisk) && revenueAtRisk > 0;
   const maxYearValue = Math.max(savings.annualDollarsSaved, 1);
 
   const recommendationsForSavings: Recommendation[] = recommendations.map((r, i) => {
@@ -449,6 +457,116 @@ export default async function OnboardingRecommendationsPage({
           <SavingsMethodology savings={savings} recommendations={recommendationsForSavings} />
         </section>
       ) : null}
+
+      {/* Labor vs Automation comparison section */}
+      <section className="rounded-2xl border border-border bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-8 md:p-10 space-y-6">
+        <div className="text-center space-y-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-amber-500 font-semibold">Why automation wins</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+            What changes when you stop doing this manually
+          </h2>
+        </div>
+
+        {pitcher?.transformation_promise ? (
+          <p className="text-base md:text-lg text-foreground leading-relaxed max-w-3xl mx-auto text-center">
+            {pitcher.transformation_promise}
+          </p>
+        ) : null}
+
+        <div className="grid md:grid-cols-3 gap-4 mt-6">
+          <Card className="border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 shadow-sm">
+            <CardContent className="p-5 space-y-2">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-semibold text-sm">
+                <XCircle className="size-4" />
+                What manual work costs you
+              </div>
+              {showTeamCostComparison ? (
+                <>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(monthlyTeamCost!)}/month
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    is what you&apos;re paying your team for work that includes repetitive manual tasks. That covers {showSavings ? formatHours(savings.monthlyHoursSaved) : 'significant hours'} of work every month that automation handles instantly, with faster response times and zero downtime.
+                  </p>
+                </>
+              ) : showSavings ? (
+                <>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {formatHours(savings.monthlyHoursSaved)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    of your team&apos;s time every month goes to tasks automation handles instantly. That&apos;s {formatCurrency(savings.monthlyDollarsSaved)}/month in labor value tied up in manual work.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Your team is spending significant time on repetitive tasks that don&apos;t need a human touch. Exact hours confirmed on discovery call.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/10 shadow-sm">
+            <CardContent className="p-5 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
+                <CheckCircle2 className="size-4" />
+                What automation delivers
+              </div>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">24/7</p>
+              <p className="text-sm text-muted-foreground">
+                coverage with instant responses, no sick days, no turnover, no training. Runs while you sleep.
+              </p>
+              {showTeamCostComparison ? (
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mt-2">
+                  You&apos;re currently paying {formatCurrency(monthlyTeamCost!)}/month for manual coverage. Our automation handles this faster and better for significantly less. Exact pricing confirmed on your discovery call.
+                </p>
+              ) : (
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mt-2">
+                  Better results at a fraction of your current manual cost. Exact pricing confirmed on your discovery call.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/30 dark:bg-amber-950/10 shadow-sm">
+            <CardContent className="p-5 space-y-2">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-sm">
+                <TrendingUp className="size-4" />
+                Revenue you&apos;re leaving behind
+              </div>
+              {showRevenueAtRisk ? (
+                <>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                    {formatCurrency(revenueAtRisk)}/month
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    in monthly revenue at risk from the operational gaps we identified. Automation doesn&apos;t just save cost, it captures revenue you&apos;re currently losing.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Beyond cost savings, automation captures leads and revenue that manual processes miss. We&apos;ll quantify this on your discovery call.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="text-center pt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Every client we work with pays significantly less than their current manual cost for better, faster, always-on coverage.
+          </p>
+          <BookCallTrigger
+            sessionId={session.id}
+            prefilledEmail={session.captured_email ?? ''}
+            prefilledName=""
+            prefilledPhone={session.captured_phone ?? ''}
+            prefilledBusiness={session.captured_business_name ?? ''}
+            className="inline-flex"
+            label="See my pricing on a discovery call →"
+          />
+        </div>
+      </section>
 
       {hasStrategicInsight && leverageMove ? (
         <section>
