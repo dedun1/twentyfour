@@ -89,6 +89,149 @@ Output JSON schema:
 
 Output ONLY raw JSON. No markdown.`;
 
+/**
+ * Returns all dollar figures found in a string, parsed as numbers (no comma, no $).
+ * Matches patterns like "$1,680", "$50000", "$2,800+", "$300/day", "$1.5k", "1500 USD".
+ */
+function extractDollarFiguresFromText(text: string): number[] {
+  if (!text || typeof text !== 'string') return [];
+  const figures: number[] = [];
+  // Match $X or $X,XXX or $X.X with optional k/K suffix
+  const dollarPattern = /\$?\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*([kKmM])?/g;
+  let match: RegExpExecArray | null;
+  while ((match = dollarPattern.exec(text)) !== null) {
+    const rawNum = match[1].replace(/,/g, '');
+    const value = Number.parseFloat(rawNum);
+    if (!Number.isFinite(value) || value < 10) continue; // Skip tiny numbers (likely not dollar amounts)
+    const suffix = (match[2] || '').toLowerCase();
+    const multiplier = suffix === 'k' ? 1000 : suffix === 'm' ? 1_000_000 : 1;
+    figures.push(value * multiplier);
+  }
+  return figures;
+}
+
+/**
+ * Checks whether a dollar figure is "grounded" in captured_facts. A figure is grounded if:
+ * - It directly matches any captured number (within 5% tolerance)
+ * - It's derivable from a single multiplication of two captured numbers (daily_orders * AOV, etc.)
+ * - It's derivable from a percentage of one number (e.g. 40% of monthly_revenue)
+ * - It's within 5% of revenue * common-monthly-multiplier (24, 30 for monthly recurring; 12 for annual)
+ */
+function isFigureGrounded(figure: number, facts: Record<string, unknown> | null | undefined): boolean {
+  if (!facts) return false;
+  const tolerance = 0.05; // 5% tolerance for rounding
+  const isClose = (a: number, b: number) => {
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return false;
+    return Math.abs(a - b) / b <= tolerance;
+  };
+
+  // Collect all positive numeric values from captured_facts
+  const numbers: number[] = [];
+  for (const key of [
+    'monthly_revenue',
+    'daily_orders',
+    'average_order_value',
+    'team_size',
+    'monthly_team_cost',
+    'monthly_tool_spend',
+    'monthly_ad_spend',
+    'hours_lost_per_week',
+    'cost_per_acquisition',
+  ]) {
+    const v = facts[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) numbers.push(v);
+  }
+
+  if (numbers.length === 0) return false;
+
+  // Direct match
+  for (const n of numbers) {
+    if (isClose(figure, n)) return true;
+  }
+
+  // Single-multiplier derivations: 0.05 to 1.0 (percentages), 12 (annual), 24 (24-hour), 30 (monthly)
+  const multipliers = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 4, 7, 12, 20, 22, 24, 26, 30];
+  for (const n of numbers) {
+    for (const m of multipliers) {
+      if (isClose(figure, n * m)) return true;
+    }
+  }
+
+  // Pairwise product (e.g. daily_orders * average_order_value, then * any multiplier)
+  for (let i = 0; i < numbers.length; i++) {
+    for (let j = 0; j < numbers.length; j++) {
+      if (i === j) continue;
+      const product = numbers[i] * numbers[j];
+      if (isClose(figure, product)) return true;
+      for (const m of multipliers) {
+        if (isClose(figure, product * m)) return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Scans every dollar figure across recommendations and verifies it can be derived
+ * from captured_facts. Returns details on the first ungrounded figure encountered.
+ */
+function detectUngroundedDollarFigures(
+  recs: Recommendation[],
+  capturedFacts: Record<string, unknown> | null | undefined,
+): { hasUngrounded: boolean; reason: string } {
+  if (!capturedFacts) {
+    // If we have no captured_facts, we can't validate. Skip the check rather than reject.
+    return { hasUngrounded: false, reason: 'No captured_facts to validate against (skipped)' };
+  }
+
+  const numericKeys = [
+    'monthly_revenue',
+    'daily_orders',
+    'average_order_value',
+    'team_size',
+    'monthly_team_cost',
+    'monthly_tool_spend',
+    'monthly_ad_spend',
+    'hours_lost_per_week',
+    'cost_per_acquisition',
+  ] as const;
+  let hasPositiveNumeric = false;
+  for (const key of numericKeys) {
+    const v = capturedFacts[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+      hasPositiveNumeric = true;
+      break;
+    }
+  }
+  if (!hasPositiveNumeric) {
+    return { hasUngrounded: false, reason: 'No positive numeric captured_facts to validate against (skipped)' };
+  }
+
+  for (const rec of recs) {
+    const fieldsToCheck: Array<{ name: string; text: string }> = [
+      { name: 'current_pain', text: rec.current_pain || '' },
+      { name: 'estimated_roi', text: rec.estimated_roi || '' },
+      { name: 'impact_metric.before', text: rec.impact_metric?.before || '' },
+      { name: 'impact_metric.after', text: rec.impact_metric?.after || '' },
+    ];
+
+    for (const { name, text } of fieldsToCheck) {
+      const figures = extractDollarFiguresFromText(text);
+      for (const figure of figures) {
+        if (!isFigureGrounded(figure, capturedFacts)) {
+          return {
+            hasUngrounded: true,
+            reason: `Ungrounded dollar figure $${figure.toLocaleString()} in rec "${rec.title}" field "${name}". Not derivable from captured_facts.`,
+          };
+        }
+      }
+    }
+  }
+
+  return { hasUngrounded: false, reason: '' };
+}
+
 function detectDegenerateOutput(recs: Recommendation[]): { isDegenerate: boolean; reason: string } {
   if (!Array.isArray(recs)) {
     return { isDegenerate: true, reason: 'Output is not an array' };
@@ -151,7 +294,7 @@ function parseRecommendation(input: unknown, index: number): Recommendation {
 /** Parses recommender JSON without inserting a degenerate single fallback row. */
 function buildRecommenderOutputFromParsed(
   value: Record<string, unknown>,
-  opts?: { attempt?: number; rawText?: string }
+  opts?: { attempt?: number; rawText?: string; capturedFacts?: Record<string, unknown> | null }
 ): RecommenderOutput {
   const rawRecs = Array.isArray(value.recommendations) ? value.recommendations : [];
   if (rawRecs.length === 0) {
@@ -165,6 +308,16 @@ function buildRecommenderOutputFromParsed(
     const suffix = opts?.attempt != null ? ` (attempt ${opts.attempt})` : '';
     throw new Error(`Recommender produced degenerate output${suffix}: ${degenerateCheck.reason}`);
   }
+
+  // Anti-fabrication: every dollar figure in every rec must be grounded in captured_facts.
+  const groundedCheck = detectUngroundedDollarFigures(recs, opts?.capturedFacts ?? null);
+  if (groundedCheck.hasUngrounded) {
+    console.error('[Recommender] UNGROUNDED DOLLAR FIGURE DETECTED:', groundedCheck.reason);
+    console.error('[Recommender] Raw input that produced this:', opts?.rawText?.slice(0, 2000));
+    const suffix = opts?.attempt != null ? ` (attempt ${opts.attempt})` : '';
+    throw new Error(`Recommender produced ungrounded figures${suffix}: ${groundedCheck.reason}`);
+  }
+
   const computedHours = recs.reduce((sum, rec) => sum + rec.time_saved_hours_per_month, 0);
   const total_hours_saved = Math.max(1, Math.round(Number(value.total_hours_saved ?? computedHours) || computedHours));
   const total_monthly_value = Math.max(
@@ -219,7 +372,18 @@ export async function runRecommender(
         .trim();
 
       const jsonParsed = JSON.parse(cleaned) as Record<string, unknown>;
-      const out = buildRecommenderOutputFromParsed(jsonParsed, { attempt, rawText: cleaned });
+      const businessDataRecord = typeof businessData === 'object' && businessData !== null
+        ? (businessData as Record<string, unknown>)
+        : {};
+      const capturedFactsForCheck =
+        typeof businessDataRecord.captured_facts === 'object' && businessDataRecord.captured_facts !== null
+          ? (businessDataRecord.captured_facts as Record<string, unknown>)
+          : null;
+      const out = buildRecommenderOutputFromParsed(jsonParsed, {
+        attempt,
+        rawText: cleaned,
+        capturedFacts: capturedFactsForCheck,
+      });
       console.log(`[Recommender] Success on attempt ${attempt} with ${out.recommendations.length} recommendations`);
       return out;
     } catch (err) {

@@ -161,9 +161,12 @@ export function normalizeRecommendations(value: unknown): Recommendation[] {
       const priority = item.priority === 'high' || item.priority === 'medium' || item.priority === 'low'
         ? item.priority
         : 'medium';
-      const channel = item.channel === 'SMS' || item.channel === 'Email' || item.channel === 'Instagram' || item.channel === 'Dashboard'
-        ? item.channel
-        : 'SMS';
+      // Accept any non-empty channel string from the recommender. Falls back to 'Custom'
+      // only when the field is missing, non-string, or empty. The recommender is allowed
+      // to use channels tailored to each client's actual tools (Mindbody, Dentrix, Klaviyo,
+      // Voice, Phone, anything industry-specific).
+      const channelRaw = typeof item.channel === 'string' ? item.channel.trim() : '';
+      const channel = channelRaw.length > 0 ? channelRaw : 'Custom';
       const impact_metric_raw = isRecord(item.impact_metric) ? item.impact_metric : {};
       const impact_metric = {
         metric_name: typeof impact_metric_raw.metric_name === 'string' && impact_metric_raw.metric_name.trim()
